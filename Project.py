@@ -1,4 +1,6 @@
 import psycopg2 as pg  # 'pscopg2' is used to interact with the PostgreSQL database
+import flask
+from flask import reuqest
 
 def authenticate(
     name, password
@@ -48,7 +50,14 @@ try:
     # insertValue_script = "INSERT VALUE INTO users (name, age) VALUES ('John', 25)"
     # cursor.execute(insertValue_script)
     # cursor.commit()
-
+    
+    # for i in cursor.fetchall() # Fetch all the rows from the table
+    # print(f"Name: {i}, Age: {i}, ID: {i}") 
+    
+    # update_script = "UPDATE users SET age = 26 WHERE name = 'John'"
+    # cursor.execute(update_script)
+    # cursor.commit()
+    
 except Exception as e:
     print("Error: ", e)
     print("Failed to connect to the database")
