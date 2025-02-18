@@ -4,9 +4,8 @@ from flask import reuqest
 
 def authenticate(
     name, password
-):  # Authenticate function to verify username and password
+):  #Authenticate function to verify username and password
     return name == "admin" and password == "ABC"
-
 
 # Later to be modified, just a basic implementation of Admin's Class
 class Admin:  # Admin Class to access admin panel
@@ -18,6 +17,9 @@ class Admin:  # Admin Class to access admin panel
     )  # Operations that can be performed by the admin
 
     def __init__(self):
+        ''' This is the function (similar to constructor in C++) that is called when an object of the class is created
+        It will print the welcome message and the operations that can be performed by the admin (as of now)
+        '''
         print("Welcome to the Admin Panel")
         print("You can apply the following operations:")
 
