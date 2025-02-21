@@ -1,6 +1,6 @@
 import psycopg2 as pg  # 'pscopg2' is used to interact with the PostgreSQL database
 import flask 
-from flask import reuqest
+from flask import Flask, render_template, redirect, url_for
 
 def authenticate(
     name, password
