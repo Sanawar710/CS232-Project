@@ -17,33 +17,25 @@ body {
     text-align: center;
     display: flex;
     flex-direction: column;
-    align-items: center; /* Centers all elements */
+    align-items: center;
 }
 
 h2 {
     margin-bottom: 20px;
 }
 
-form {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
 label {
-    width: 100%;
-    text-align: center; /* Centers label text */
+    display: block;
+    text-align: left;
     margin: 10px 0 5px;
 }
 
 input {
-    width: 90%; /* Keeps input fields inside container */
+    width: 100%;
     padding: 8px;
     margin-bottom: 10px;
     border: 1px solid lightsteelblue;
     border-radius: 4px;
-    text-align: center; /* Centers text inside input fields */
 }
 
 button {
@@ -57,5 +49,5 @@ button {
 }
 
 button:hover {
-    background-color: deepskyblue;
+    background-color: lightblue;
 }

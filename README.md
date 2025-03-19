@@ -1,2 +1,2 @@
 # CS232-Project
-This project for CS232 (Database Management Systems) involves implementing a DBMS with a user-friendly frontend.
+This project develops a Learning Management System (LMS) for CS232, featuring course management, grading, attendance tracking, performance monitoring for at-risk students, and real-time student-instructor communication. It utilizes a PostgreSQL relational database, and a Python-based frontend implemented with HTML and CSS.
