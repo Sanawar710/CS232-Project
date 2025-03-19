@@ -4,31 +4,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to DBMS Project</title>
+    <title>Login - Learning Management System</title>
     <link rel="stylesheet" href="Project.CSS">
 </head>
 
 <body>
+    <div class="login-container">
+        <h2>Login to LMS</h2>
+        <form action="dashboard.html" method="POST">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required>
 
-    <header>
-        <h1>Welcome to the DBMS Project</h1>
-        <p>CS232 - Database Management System</p>
-    </header>
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required>
 
-    <nav>
-        <a href="about.html" target="_blank">About</a>
-        <a href="features.html" target="_blank">Features</a>
-        <a href="contact.html" target="_blank">Contact</a>
-    </nav>
-
-    <div class="container">
-        <p>Click on the links above to navigate to different pages.</p>
+            <button type="submit">Login</button>
+        </form>
     </div>
-
-    <footer>
-        <p>Project by u2023331</p>
-    </footer>
-
 </body>
 
 </html>

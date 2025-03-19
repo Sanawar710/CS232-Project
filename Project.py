@@ -1,11 +1,16 @@
 import psycopg2 as pg  # 'psycopg2' is used to interact with the PostgreSQL database
-import flask
-from flask import Flask, render_template, redirect, url_for
-
+import Django  # Django is a high-level Python web framework 
 
 def authenticate(
     name, password
 ):  # Authenticate function to verify username and password
+    '''
+    Args:
+        name (str): The username of the user.
+        password (str): The password of the user.
+    Returns:
+        bool: True if the username is "admin" and the password is "ABC", else False.
+    '''
     return name == "admin" and password == "ABC"
 
 
@@ -28,7 +33,7 @@ class Admin:  # Admin Class to access admin panel
         for i, operation in enumerate(self.operations, start=1):
             print(f"{i}. {operation}")
 
-        operation_number = int(input("Enter the operation number: "))
+        # operation_number = int(input("Enter the operation number: "))
         pass
 
 
