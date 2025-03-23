@@ -1,5 +1,5 @@
 import psycopg2 as pg  # 'psycopg2' is used to interact with the PostgreSQL database
-import Django  # Django is a high-level Python web framework 
+import django  # Django is a high-level Python web framework 
 
 def authenticate(
     name, password
