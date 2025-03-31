@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Learning Management System</title>
+    <link rel="stylesheet" href="Project.CSS">
+</head>
+
+<body>
+    <div class="login-container">
+        <h2>Login to LMS</h2>
+        <form id="loginForm">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required>
+
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required>
+
+            <button type="submit">Login</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById("loginForm").addEventListener("submit", function (event) {
+            event.preventDefault(); // Prevent default form submission
+
+            // Get user inputs
+            var username = document.getElementById("username").value;
+            var password = document.getElementById("password").value;
+
+            // Simple validation (Modify this for real authentication)
+            if (username === "admin" && password === "1234") {  // Temporary credentials. Later to be replaced from database
+                window.location.href = "Welcome.html"; // Redirect to Dashboard
+            } else {
+                alert("Invalid username or password!");
+            }
+        });
+    </script>
+</body>
+
+</html>
