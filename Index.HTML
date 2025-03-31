@@ -20,6 +20,10 @@
 
             <button type="submit">Login</button>
         </form>
+        
+        <!-- Sign-Up Option -->
+        <p>Don't have an account? <a href="Sign-Up.HTML">Sign Up</a></p>
+        <p>Forgot your password? <a href="Forgot-Password.HTML">Reset Password</a></p>
     </div>
 
     <script>
@@ -32,7 +36,7 @@
 
             // Simple validation (Modify this for real authentication)
             if (username === "admin" && password === "1234") {  // Temporary credentials. Later to be replaced from database
-                window.location.href = "Welcome.html"; // Redirect to Dashboard
+                window.location.href = "Welcome.HTML"; // Redirect to Dashboard
             } else {
                 alert("Invalid username or password!");
             }
