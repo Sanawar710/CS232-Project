@@ -1,0 +1,120 @@
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #0077b6, #005f87);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    color: white;
+    flex-direction: column;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Navigation Bar */
+.top-nav {
+    background-color: rgba(0, 70, 110, 0.9);
+    padding: 15px 0;
+    text-align: center;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.top-nav button {
+    background: linear-gradient(to right, #1e90ff, #005f87);
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: 0.3s ease-in-out;
+}
+
+.top-nav button:hover {
+    background: linear-gradient(to right, #005f87, #003f5c);
+    transform: scale(1.05);
+}
+
+/* About Container */
+.about-container {
+    max-width: 500px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(15px);
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0px 15px 40px rgba(0, 0, 0, 0.3);
+    text-align: left;
+    margin-top: 120px;
+    animation: fadeIn 0.8s ease-in-out;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.about-container h1 {
+    color: #00508f;
+    font-size: 2.5em;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    text-align: center;
+}
+
+.about-container h2, .about-container h3 {
+    color: #00508f;
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-top: 20px;
+}
+
+.about-container .subheading {
+    color: black;
+    font-size: 1.3em;
+    font-weight: bold;
+    margin-top: 15px;
+}
+
+.about-container p {
+    text-align: left;
+    line-height: 2;
+    color: white;
+    font-size: 1.1em;
+    font-style: normal;
+    margin-left: 20px;
+}
+
+.about-container p.result-management {
+    color: black;
+    font-weight: bold;
+}
+
+.about-container .contact-info {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #e0f7fa;
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+    padding-top: 15px;
+    text-align: left;
+    font-weight: bold;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
