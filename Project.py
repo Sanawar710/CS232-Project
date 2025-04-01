@@ -1,40 +1,96 @@
 import psycopg2 as pg  # 'psycopg2' is used to interact with the PostgreSQL database
-import django  # Django is a high-level Python web framework 
+import pandas as pd  # Pandas is a data manipulation and analysis library
+import flask  # Flask is a high-level Python web framework
 
-def authenticate(
-    name, password
-):  # Authenticate function to verify username and password
-    '''
-    Args:
-        name (str): The username of the user.
-        password (str): The password of the user.
-    Returns:
-        bool: True if the username is "admin" and the password is "ABC", else False.
-    '''
-    return name == "admin" and password == "ABC"
+df = pd.DataFrame()  # Global DataFrame to hold student data
 
 
-# Later to be modified, just a basic implementation of Admin's Class
-class Admin:  # Admin Class to access admin panel
-    operations = (
-        "Add User",
-        "Delete User",
-        "Update User",
-        "View User",
-    )  # Operations that can be performed by the admin
+def Absoulte_Grading():
+    """
+    This function applies absolute grading to the DataFrame based on fixed ranges.
+    It assigns grades based on the specified ranges for each grade.
+    """
+    global df
 
-    def __init__(self):
-        """This is the function (similar to constructor in C++) that is called when an object of the class is created.
-        It will print the welcome message and the operations that can be performed by the admin (as of now).
-        """
-        print("Welcome to the Admin Panel")
-        print("You can apply the following operations:")
 
-        for i, operation in enumerate(self.operations, start=1):
-            print(f"{i}. {operation}")
+try:
+    df["Grade"] = pd.cut(
+        df["Marks"],
+        bins=[0, 50, 60, 70, 80, 100],
+        labels=["F", "D", "C", "B", "A"],
+        right=False,
+    )
+except KeyError:  # Marks column not found in the dataset
+    pass
+except Exception as e:  # Handle any other exceptions that may occur
+    pass
 
-        # operation_number = int(input("Enter the operation number: "))
+
+def Relative_Grading():
+    """
+    This function applies relative grading to the DataFrame based on Z-scores.
+    It calculates the mean and standard deviation of the "Marks" column and assigns grades based on Z-scores.
+    """
+    global df
+    try:
+        mean = df["Marks"].mean()
+        std_dev = df["Marks"].std()
+
+        # Assign grades based on Z-scores (Central Limit Theorem)
+        def calculate_grade(marks):
+            z_score = (marks - mean) / std_dev
+            if z_score >= 1:
+                return "A"
+            elif 0.5 <= z_score < 1:
+                return "B"
+            elif -0.5 <= z_score < 0.5:
+                return "C"
+            elif -1 <= z_score < -0.5:
+                return "D"
+            else:
+                return "F"
+
+        df["Grade"] = df["Marks"].apply(calculate_grade)
+    except KeyError:  # Marks column not found in the dataset
         pass
+    except Exception as e:  # Handle any other exceptions that may occur
+        pass
+
+
+# def authenticate(
+#     name, password
+# ):  # Authenticate function to verify username and password
+#     '''
+#     Args:
+#         name (str): The username of the user.
+#         password (str): The password of the user.
+#     Returns:
+#         bool: True if the username is "admin" and the password is "ABC", else False.
+#     '''
+#     return name == "admin" and password == "ABC"
+
+
+# # Later to be modified, just a basic implementation of Admin's Class
+# class Admin:  # Admin Class to access admin panel
+#     operations = (
+#         "Add User",
+#         "Delete User",
+#         "Update User",
+#         "View User",
+#     )  # Operations that can be performed by the admin
+
+#     def __init__(self):
+#         """This is the function (similar to constructor in C++) that is called when an object of the class is created.
+#         It will print the welcome message and the operations that can be performed by the admin (as of now).
+#         """
+#         print("Welcome to the Admin Panel")
+#         print("You can apply the following operations:")
+
+#         for i, operation in enumerate(self.operations, start=1):
+#             print(f"{i}. {operation}")
+
+#         # operation_number = int(input("Enter the operation number: "))
+#         pass
 
 
 # Database Connection Parameters
