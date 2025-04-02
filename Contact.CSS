@@ -1,0 +1,49 @@
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #a8dadc, #457b9d); /* Ocean Breeze gradient */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    color: #e0fbfc; /* Light, airy text color */
+}
+
+.contact-container {
+    max-width: 600px;
+    background: rgba(255, 255, 255, 0.15); /* Semi-transparent white for a breezy effect */
+    backdrop-filter: blur(10px); /* Subtle blur for depth */
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.contact-container h1 {
+    color: #005f8c;
+    font-size: 2.8em;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.contact-container p {
+    font-size: 1.1em;
+    line-height: 1.8;
+    margin-bottom: 15px;
+}
+
+.contact-container strong {
+    color: #005f8c;
+}
+
+.contact-container a {
+    color: #1c94af; /* A brighter blue for links, like a clear sky */
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.contact-container a:hover {
+    color: #6272a4; /* A slightly darker blue on hover */
+    text-decoration: underline;
+}
