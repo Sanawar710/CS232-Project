@@ -112,27 +112,64 @@ try:
 
     print("Connected to the database")
 
-    # createTable_script = "CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name VARCHAR(50), age INT)" # Example SQL Query
-    # cursor.execute(createTable_script)
-    # conn.commit()
+    # Previous Tables to be Implemented till now
 
-    # insertValue_script = "INSERT INTO users (name, age) VALUES ('John', 25)"
-    # cursor.execute(insertValue_script)
-    # conn.commit()
+    attendance_script = """
+    CREATE TABLE IF NOT EXISTS attendance (
+        id SERIAL PRIMARY KEY,
+        user_id INT,
+        course_id INT,
+        date DATE NOT NULL,
+        status VARCHAR(10) CHECK (status IN ('absent', 'present', 'leave')) NOT NULL, 
+        FOREIGN KEY (user_id) REFERENCES Users(id),
+        FOREIGN KEY (course_id) REFERENCES courses(course_id)
+    );
+    """
+    cursor.execute(attendance_script)
+    conn.commit()
 
-    # cursor.execute("SELECT * FROM users")  # Fetch all rows from the table
-    # for row in cursor.fetchall():
-    #     print(f"Name: {row[1]}, Age: {row[2]}, ID: {row[0]}")
+    message_script = """
+    CREATE TABLE IF NOT EXISTS message(
+       Message_id SERIAL PRIMARY KEY,
+       FOREIGN KEY (sender_id) REFERENCES Users(id),
+       FOREIGN KEY (receiver_id) REFERENCES Users(id),
+       Message TEXT,
+       Status VARCHAR(100)
+       Time TIMESTAMP
+       );"""
+    cursor.execute(message_script)
+    conn.commit()
 
-    # update_script = "UPDATE users SET age = 26 WHERE name = 'John'"
-    # cursor.execute(update_script)
-    # conn.commit()
+    bug_script = """
+    CREATE TABLE IF NOT EXISTS bug(
+        bug_id SERIAL PRIMARY KEY,
+        FOREIGN KEY (sender_id) REFERENCES Users(id),
+        Description TEXT NOT NULL,
+        status VARCHAR(10) CHECK (status IN ('open', 'in_progress', 'closed')) NOT NULL,
+        Time TIMESTAMP
+        );
+   """
+    cursor.execute(bug_script)
+    cursor.commit()
+
+    rechcecking_script = """
+    CREATE TABLE IF NOT EXISTS rechecking(
+        recheck_id SERIAL PRIMARY KEY,
+        FOREIGN KEY (sender_id) REFERENCES Users(id),
+        FOREIGN KEY (course_id) REFERENCES Courses(id),
+        reason TEXT NOT NULL,
+        exam_type VARCHAR(10) CHECK (exam_type IN ('quiz', 'mid term', 'final')) NOT NULL,
+        status VARCHAR(10) CHECK (status IN ('pending', 'approved', 'rejected')) NOT NULL,
+        );
+    """
+    cursor.execute(rechcecking_script)
+    cursor.commit()
 
 except Exception as e:
     print("Error:", e)
     print("Failed to connect to the database")
 
-finally:  # This will always be executed
+finally:
     if cursor is not None:
         cursor.close()
     if conn is not None:
