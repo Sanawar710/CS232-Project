@@ -165,6 +165,37 @@ try:
     cursor.execute(rechcecking_script)
     cursor.commit()
 
+    academic_script = """
+    CREATE TABLE IF NOT EXISTS academic_calendar(
+        event_id SERIAL PRIMARY KEY,
+        event_name VARCHAR(100) NOT NULL,
+        description TEXT NOT NULL,
+        event_date DATE);
+"""
+    cursor.execute(academic_script)
+    cursor.commit()
+
+    feedback_script = """
+    CREATE TABLE IF NOT EXISTS feedback(
+       feedback_id SERIAL PRIMARY KEY,
+       FOREIGN KEY (sender_id) REFERENCES Users(id),
+       FOREIGN KEY (course_id) REFERENCES Courses(id),
+       FOREIGN KEY (instructor _id) REFERENCES Users(id),
+       rating INT CHECK (rating BETWEEN 1 AND 5),
+       comments TEXT,
+       time TIMESTAMP
+       );"""
+    cursor.execute(feedback_script)
+    cursor.commit()
+
+    # Shouldn't we implement it with HTML and CSS instead of table?
+    # dashboard_script = """
+    # CREATE TABLE IF NOR EXIST dashboard(
+    # theme VARCHAR(100),
+    # layout TEXT);"""
+    # cursor.execute(dasboard_script)
+    # cursor.commit()
+
 except Exception as e:
     print("Error:", e)
     print("Failed to connect to the database")
