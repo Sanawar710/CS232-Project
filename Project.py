@@ -1,6 +1,7 @@
 import psycopg2 as pg  # 'psycopg2' is used to interact with the PostgreSQL database
 import pandas as pd  # Pandas is a data manipulation and analysis library
-import flask  # Flask is a high-level Python web framework
+from flask import Flask  # Flask is a high-level Python web framework
+from flask import render_template # 'render_template' is used to render HTML files
 
 df = pd.DataFrame()  # Global DataFrame to hold student data
 
@@ -11,7 +12,6 @@ def Absoulte_Grading():
     It assigns grades based on the specified ranges for each grade.
     """
     global df
-
 
 try:
     df["Grade"] = pd.cut(
