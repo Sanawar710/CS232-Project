@@ -283,6 +283,18 @@ try:
     cursor.execute(feedback_script)
     cursor.commit()
 
+    discussion_script = """CREATE TABLE DiscussionThreads (
+    thread_id SERIAL PRIMARY KEY,
+    mesage TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'deleted', 'locked', 'archived')),
+    FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE,
+    FOREIGN KEY (instructor_id) REFERENCES Users(user_id) ON DELETE CASCADE
+);
+"""
+    cursor.execute(discussion_script)
+    cursor.commit()
+
 except Exception as e:
     print("Error:", e)
     print("Failed to connect to the database")
