@@ -188,14 +188,6 @@ try:
     cursor.execute(feedback_script)
     cursor.commit()
 
-    # Shouldn't we implement it with HTML and CSS instead of table?
-    # dashboard_script = """
-    # CREATE TABLE IF NOR EXIST dashboard(
-    # theme VARCHAR(100),
-    # layout TEXT);"""
-    # cursor.execute(dasboard_script)
-    # cursor.commit()
-
 except Exception as e:
     print("Error:", e)
     print("Failed to connect to the database")
