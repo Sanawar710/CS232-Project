@@ -264,8 +264,118 @@ try:
        comments TEXT,
        time TIMESTAMP
        );"""
+
     cursor.execute(feedback_script)
     cursor.commit()
+
+
+    # 1. Notify instructors of students with low performance
+    low_performance_script = '''
+    INSERT INTO message (sender_id, receiver_id, message)
+    SELECT 
+    R.user_id,
+    C.instructor_id,
+    'Student ' || U.name || ' has low quiz marks in ' || C.title
+    FROM Results R
+    JOIN Users U ON R.user_id = U.user_id
+    JOIN Courses C ON R.course_id = C.course_id
+    WHERE (R.quiz1 + R.quiz2) < 50;
+    '''
+    cursor.execute(low_performance_script)
+    conn.commit()
+
+    # 2. Recalculate total marks
+    recalculate_script = '''
+    UPDATE Results
+    SET total_marks = quiz1 + quiz2 + midterm + final;
+    '''
+    cursor.execute(recalculate_script)
+    conn.commit()
+
+    # 3. View attendance of a specific student
+    view_attendance_script = '''
+    SELECT A.date, A.status, C.title
+    FROM Attendance A
+    JOIN Courses C ON A.course_id = C.course_id
+    WHERE A.user_id = %s
+    ORDER BY A.date;
+    '''
+    cursor.execute(view_attendance_script)
+    conn.commit()
+
+    # 4. View attendance of all students in a course
+    view_attendance_course_script = '''
+    SELECT U.name, A.date, A.status AS attendance_status
+    FROM Attendance A
+    JOIN Users U ON A.user_id = U.user_id
+    JOIN Courses C ON A.course_id = C.course_id
+    WHERE C.course_id = %s
+    ORDER BY A.date;
+    '''
+    cursor.execute(view_attendance_course_script)
+    conn.commit()
+
+# 5. Get all students enrolled in a specific course
+students_in_course_script = '''
+SELECT U.user_id, U.name, U.email, R.status AS registration_status
+FROM Users U
+JOIN Registrations R ON U.user_id = R.user_id
+JOIN Courses C ON R.course_id = C.course_id
+WHERE C.course_id = %s;
+'''
+cursor.execute(students_in_course_script)
+    conn.commit()
+
+# 6. Calculate total and attended classes per student
+attendance_summary_script = '''
+SELECT A.user_id,
+       A.course_id,
+       COUNT(A.attendance_id) AS total_classes,
+       COUNT(CASE WHEN A.status = 'present' THEN 1 END) AS attended_classes
+FROM Attendance A
+WHERE A.course_id = %s
+GROUP BY A.user_id, A.course_id;
+'''
+ccursor.execute(attendance_summary_script)
+    conn.commit()
+
+# 7. Attendance percentage per student
+attendance_percentage_script = '''
+SELECT A.user_id,
+       A.course_id,
+       (COUNT(CASE WHEN A.status = 'present' THEN 1 END) * 1.0 / COUNT(A.attendance_id)) * 100 AS attendance_percentage
+FROM Attendance A
+WHERE A.course_id = %s
+GROUP BY A.user_id, A.course_id;
+'''
+cursor.execute(attendance_percentage_script)
+    conn.commit()
+
+# 8. Insert attendance incentive (≥ 90%)
+insert_incentive_script = '''
+INSERT INTO Rewards (user_id, course_id, reward_type, reward_value)
+SELECT A.user_id, A.course_id, 'attendance_incentive', 1
+FROM Attendance A
+WHERE A.course_id = %s
+GROUP BY A.user_id, A.course_id
+HAVING (COUNT(CASE WHEN A.status = 'present' THEN 1 END) * 1.0 / COUNT(A.attendance_id)) >= 0.9;
+'''
+cursor.execute(insert_incentive_script)
+    conn.commit()
+
+# 9. Add grading_type column to Courses
+add_column_script = '''
+ALTER TABLE Courses
+ADD COLUMN grading_type VARCHAR(20)
+CHECK (grading_type IN ('absolute', 'relative'));
+'''
+   cursor.execute(add_column_script)
+   conn.commit()
+
+   
+
+
+
 
     # Shouldn't we implement it with HTML and CSS instead of table?
     # dashboard_script = """
