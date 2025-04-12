@@ -61,13 +61,13 @@ def Relative_Grading():
 def authenticate(
     name, password
 ):  # Authenticate function to verify username and password
-    '''
+    """
     Args:
         name (str): The username of the user.
         password (str): The password of the user.
     Returns:
         bool: True if the username is "admin" and the password is "ABC", else False.
-    '''
+    """
     return name == "admin" and password == "ABC"
 
 
@@ -123,6 +123,28 @@ try:
     profile_pic VARCHAR(255)
 );"""
     cursor.execute(user_script)
+    cursor.commit()
+
+    student_script = """CREATE TABLE Students (
+    program VARCHAR(50),
+    semester INT
+) INHERITS (Users);
+"""
+    cursor.execute(student_script)
+    cursor.commit()
+
+    instructor_script = """CREATE TABLE Instructors (
+    department VARCHAR(100),
+    designation VARCHAR(50)
+) INHERITS (Users);"""
+    cursor.execute(instructor_script)
+    cursor.commit()
+
+    admin_script = """CREATE TABLE Admins (
+    role_description TEXT
+) INHERITS (Users);
+"""
+    cursor.execute(admin_script)
     cursor.commit()
 
     # Courses Table
