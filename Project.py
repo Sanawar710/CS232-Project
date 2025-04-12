@@ -134,7 +134,7 @@ try:
        FOREIGN KEY (sender_id) REFERENCES Users(id),
        FOREIGN KEY (receiver_id) REFERENCES Users(id),
        Message TEXT,
-       Status VARCHAR(100)
+       Status VARCHAR(100),
        Time TIMESTAMP
        );"""
     cursor.execute(message_script)
@@ -150,7 +150,7 @@ try:
         );
    """
     cursor.execute(bug_script)
-    cursor.commit()
+    conn.commit()
 
     rechcecking_script = """
     CREATE TABLE IF NOT EXISTS rechecking(
@@ -163,7 +163,7 @@ try:
         );
     """
     cursor.execute(rechcecking_script)
-    cursor.commit()
+    conn.commit()
 
     academic_script = """
     CREATE TABLE IF NOT EXISTS academic_calendar(
@@ -180,7 +180,7 @@ try:
        feedback_id SERIAL PRIMARY KEY,
        FOREIGN KEY (sender_id) REFERENCES Users(id),
        FOREIGN KEY (course_id) REFERENCES Courses(id),
-       FOREIGN KEY (instructor _id) REFERENCES Users(id),
+       FOREIGN KEY (instructor_id) REFERENCES Users(id),
        rating INT CHECK (rating BETWEEN 1 AND 5),
        comments TEXT,
        time TIMESTAMP
