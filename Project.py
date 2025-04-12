@@ -113,6 +113,85 @@ try:
     print("Connected to the database")
 
     # Previous Tables to be Implemented till now
+    createtable_script = '''CREATE TABLE Users (
+    user_id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('student', 'instructor', 'admin')),
+    profile_pic VARCHAR(255)
+);'''
+    cursor.execute(createtable_script)
+    cursor.commit()
+    
+    createtable_script = '''
+    CREATE TABLE Courses (
+    course_id SERIAL PRIMARY KEY,
+    title VARCHAR(100) NOT NULL,
+    credit_hours INT NOT NULL CHECK (credit_hours BETWEEN 1 AND 4),
+    instructor_id INT,
+    semester VARCHAR(20),
+    FOREIGN KEY (instructor_id) REFERENCES Users(user_id)
+);'''
+    cursor.execute(createtable_script)
+    cursor.commit()
+
+    createtable_script = '''
+    CREATE TABLE CoursePrerequisites (
+    course_id INT,
+    prerequisite_id INT,
+    PRIMARY KEY (course_id, prerequisite_id),
+    FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE,
+    FOREIGN KEY (prerequisite_id) REFERENCES Courses(course_id) ON DELETE CASCADE
+);
+    '''
+    cursor.execute(createtable_script)
+    cursor.commit()
+
+    createtable_script = '''
+    CREATE TABLE Registrations (
+    registration_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    course_id INT NOT NULL,
+    status VARCHAR(20) CHECK (status IN ('enrolled', 'completed', 'dropped')) DEFAULT 'enrolled',
+    semester VARCHAR(20),
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE
+);'''
+    cursor.execute(createtable_script)
+    cursor.commit()
+
+    createtable_script = '''
+ 
+    CREATE TABLE Results (
+    result_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    course_id INT NOT NULL,
+    quiz1 FLOAT DEFAULT 0,
+    quiz2 FLOAT DEFAULT 0,
+    midterm FLOAT DEFAULT 0,
+    final FLOAT DEFAULT 0,
+    total_marks FLOAT DEFAULT 0,
+    grade VARCHAR(2),
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE
+); '''
+    cursor.execute(createtable_script)
+    cursor.commit()
+
+
+    createtable_script = '''
+    CREATE TABLE Attendance (
+    attendance_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    course_id INT NOT NULL,
+    date DATE NOT NULL,
+    status VARCHAR(10) CHECK (status IN ('present', 'absent', 'late')) NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE
+);'''
+    cursor.execute(createtable_script)
+    cursor.commit() 
 
     attendance_script = """
     CREATE TABLE IF NOT EXISTS attendance (
