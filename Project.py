@@ -35,7 +35,7 @@ def Absolute_Grading(cursor):
         print("Absolute grading applied successfully.")
     except Exception as e:
         print("Error in Absolute Grading:", e)
-        conn.rollback()
+        conn.rollback()  # Discards unwanted changes
 
 
 def relative_grading(cursor):
@@ -94,6 +94,36 @@ def insert_data(cursor, table, columns, values):
     except Exception as e:
         print("Error:", e)
         print(f"Failed to insert data into {table}")
+
+
+def update_table_value(
+    cursor, conn, table, column_to_update, new_value, condition_column, condition_value
+):
+    """Used to update the value of a specific column in a table based on a condition.
+
+    Args:
+        cursor: psycopg2 cursor object
+        conn: psycopg2 connection object
+        table: Name of the table
+        column_to_update: Name of the column to be updated
+        new_value: The value to be inserted instead of the old one
+        condition_column: The column on which the condition is to be applied
+        condition_value: Value to be matched for the condition
+    """
+
+    try:
+        query = f"""UPDATE {table}
+        SET {column_to_update} = %s
+        WHERE {condition_column} = %s;
+        """
+        cursor.execute(query, (new_value, condition_value))
+        conn.commit()
+        print(
+            f"Updated {column_to_update} to {new_value} in {table} where {condition_column} = {condition_value}"
+        )
+    except Exception as e:
+        conn.rollback()
+        print("Can not update the value:", e)
 
 
 # Database Connection Parameters
