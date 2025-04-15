@@ -212,6 +212,7 @@ try:
         sender_id INT,
         course_id INT,
         reason TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
         exam_type VARCHAR(10) CHECK (exam_type IN ('quiz', 'mid term', 'final')) NOT NULL,
         status VARCHAR(10) CHECK (status IN ('pending', 'approved', 'rejected')) NOT NULL,
         FOREIGN KEY (sender_id) REFERENCES Users(user_id),
@@ -219,6 +220,8 @@ try:
     );"""
     cursor.execute(rechecking_script)
     conn.commit()
+
+
 
     calendar_script = """CREATE TABLE IF NOT EXISTS academic_calendar (
         event_id SERIAL PRIMARY KEY,
@@ -243,6 +246,34 @@ try:
     );"""
     cursor.execute(feedback_script)
     conn.commit()
+
+    #We created a recheck_appointments table and added a created_at column to track recheck request times. The status of rechecks is automatically updated based on time.
+    recheck_appointments_script = """
+    CREATE TABLE IF NOT EXISTS recheck_appointments (
+    appointment_id SERIAL PRIMARY KEY,
+    recheck_id INT UNIQUE,
+    appointment_time TIMESTAMP NOT NULL,
+    remarks TEXT,
+    FOREIGN KEY (recheck_id) REFERENCES rechecking(recheck_id) ON DELETE CASCADE
+    );"""
+    cursor.execute(recheck_appointments_script)
+    conn.commit()
+
+
+
+    update_rechecking_status_script = """
+    UPDATE rechecking
+    SET status = CASE 
+                WHEN status = 'pending' AND CURRENT_TIMESTAMP - created_at > INTERVAL '10 days' THEN 'rejected'
+                WHEN status = 'pending' AND CURRENT_TIMESTAMP - created_at > INTERVAL '7 days' THEN 'approved'
+                ELSE status
+             END
+    WHERE status = 'pending';
+    """
+    cursor.execute(update_rechecking_status_script)
+    conn.commit()
+
+
 
     discussion_script = """CREATE TABLE DiscussionThreads (
         thread_id SERIAL PRIMARY KEY,
