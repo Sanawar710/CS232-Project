@@ -5,23 +5,65 @@ from flask import Flask, render_template  # Flask is a high-level Python web fra
 df = pd.DataFrame()  # Global DataFrame to hold student data
 
 
-def Absoulte_Grading():
+def authenticate(name, password):
     """
-    This function applies absolute grading to the DataFrame based on fixed ranges.
-    It assigns grades based on the specified ranges for each grade.
+    Args:
+        name (str): The username of the user.
+        password (str): The password of the user.
+    Returns:
+        bool: True if the username is "admin" and the password is "ABC", else False.
     """
-    global df
+    return name == "admin" and password == "ABC"
+
+
+def Absolute_Grading(cursor):
+    """
+    Applies absolute grading to students' marks and updates the 'Grade' column in the 'Results' table.
+    Grading is based on fixed marks ranges.
+    """
     try:
-        df["Grade"] = pd.cut(
-            df["Marks"],
-            bins=[0, 50, 60, 70, 80, 100],
-            labels=["F", "D", "C", "B", "A"],
-            right=False,
+        update_query = """UPDATE Results
+        SET Grade = CASE
+            WHEN total_marks >= 80 THEN 'A'
+            WHEN total_marks >= 70 THEN 'B'
+            WHEN total_marks >= 60 THEN 'C'
+            WHEN total_marks >= 50 THEN 'D'
+            ELSE 'F'
+        END;
+        """
+        cursor.connection.commit(update_query)
+        print("Absolute grading applied successfully.")
+    except Exception as e:
+        print("Error in Absolute Grading:", e)
+        conn.rollback()
+
+
+def relative_grading(cursor):
+    """This function is used to caluclate the relative grade of the student based on the Z-Score."""
+    try:
+        # Calculate the mean and standard deviation for relative grading
+        cursor.execute("SELECT AVG(Marks), STDDEV(Marks) FROM Results;")
+        mean, stddev = cursor.fetchone()
+
+        # Using the CASE expression to categorize grades based on mean and stddev
+        cursor.execute(
+            """UPDATE Results
+            SET grade = CASE
+                WHEN Marks >= %s + 1 * %s THEN 'A'
+                WHEN Marks >= %s + 0.5 * %s THEN 'B'
+                WHEN Marks >= %s - 0.5 * %s THEN 'C'
+                WHEN Marks >= %s - 1 * %s THEN 'D'
+                ELSE 'F'
+            END
+        """,
+            (mean, stddev, mean, stddev, mean, stddev, mean, stddev),
         )
-    except KeyError:
-        pass
-    except Exception:
-        pass
+
+        # Commit the changes to the database
+        cursor.connection.commit()
+
+    except Exception as e:
+        print(f"Error: {e}")
 
 
 def insert_data(cursor, table, columns, values):
@@ -52,47 +94,6 @@ def insert_data(cursor, table, columns, values):
     except Exception as e:
         print("Error:", e)
         print(f"Failed to insert data into {table}")
-
-
-def Relative_Grading():
-    """
-    This function applies relative grading to the DataFrame based on Z-scores.
-    It calculates the mean and standard deviation of the "Marks" column and assigns grades based on Z-scores.
-    """
-    global df
-    try:
-        mean = df["Marks"].mean()
-        std_dev = df["Marks"].std()
-
-        def calculate_grade(marks):
-            z_score = (marks - mean) / std_dev
-            if z_score >= 1:
-                return "A"
-            elif 0.5 <= z_score < 1:
-                return "B"
-            elif -0.5 <= z_score < 0.5:
-                return "C"
-            elif -1 <= z_score < -0.5:
-                return "D"
-            else:
-                return "F"
-
-        df["Grade"] = df["Marks"].apply(calculate_grade)
-    except KeyError:
-        pass
-    except Exception:
-        pass
-
-
-def authenticate(name, password):
-    """
-    Args:
-        name (str): The username of the user.
-        password (str): The password of the user.
-    Returns:
-        bool: True if the username is "admin" and the password is "ABC", else False.
-    """
-    return name == "admin" and password == "ABC"
 
 
 # Database Connection Parameters
