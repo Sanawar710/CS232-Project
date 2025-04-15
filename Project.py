@@ -24,6 +24,36 @@ def Absoulte_Grading():
         pass
 
 
+def insert_data(cursor, table, columns, values):
+    """
+    Inserts data into a specified table.
+
+    Args:
+        cursor (psycopg2.cursor): The cursor object to execute queries.
+        table (str): Name of the table.
+        columns (list): List of column names.
+        values (list): List of values corresponding to the columns.
+
+    Returns:
+        None
+    """
+    try:
+        # Constructing the INSERT SQL query
+        # .join(columns) joins the column names with commas (e.g. "col1, col2")
+        # %s is a placeholder for values to be inserted (the parameters will replace the placeholders)
+        # ['%s'] * len(values) creates a new list where ['%s'] is repeated len(values) times.
+        # This is used to match the number of columns in the VALUES clause
+        query = f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(values))})"
+
+        # Executing the query with provided values
+        cursor.execute(query, values)
+        print(f"Data inserted successfully into {table}")
+
+    except Exception as e:
+        print("Error:", e)
+        print(f"Failed to insert data into {table}")
+
+
 def Relative_Grading():
     """
     This function applies relative grading to the DataFrame based on Z-scores.
@@ -220,8 +250,6 @@ try:
     cursor.execute(rechecking_script)
     conn.commit()
 
-
-
     calendar_script = """CREATE TABLE IF NOT EXISTS academic_calendar (
         event_id SERIAL PRIMARY KEY,
         event_name VARCHAR(100) NOT NULL,
@@ -246,9 +274,8 @@ try:
     cursor.execute(feedback_script)
     conn.commit()
 
-    #We created a recheck_appointments table and added a created_at column to track recheck request times. The status of rechecks is automatically updated based on time.
-    recheck_appointments_script = """
-    CREATE TABLE IF NOT EXISTS recheck_appointments (
+    # We created a recheck_appointments table and added a created_at column to track recheck request times. The status of rechecks is automatically updated based on time.
+    recheck_appointments_script = """CREATE TABLE IF NOT EXISTS recheck_appointments (
     appointment_id SERIAL PRIMARY KEY,
     recheck_id INT UNIQUE,
     appointment_time TIMESTAMP NOT NULL,
@@ -258,10 +285,7 @@ try:
     cursor.execute(recheck_appointments_script)
     conn.commit()
 
-
-
-    update_rechecking_status_script = """
-    UPDATE rechecking
+    update_rechecking_status_script = """ UPDATE rechecking
     SET status = CASE 
                 WHEN status = 'pending' AND CURRENT_TIMESTAMP - created_at > INTERVAL '10 days' THEN 'rejected'
                 WHEN status = 'pending' AND CURRENT_TIMESTAMP - created_at > INTERVAL '7 days' THEN 'approved'
@@ -271,8 +295,6 @@ try:
     """
     cursor.execute(update_rechecking_status_script)
     conn.commit()
-
-
 
     discussion_script = """CREATE TABLE DiscussionThreads (
         thread_id SERIAL PRIMARY KEY,
