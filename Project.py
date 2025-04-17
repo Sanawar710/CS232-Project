@@ -1,9 +1,30 @@
+import os
 import psycopg2 as pg  # 'psycopg2' is used to interact with the PostgreSQL database
 import pandas as pd  # Pandas is a data manipulation and analysis library
-from flask import Flask, render_template  # Flask is a high-level Python web framework
+from flask import Flask, render_template, request, redirect, url_for, session  # Flask is a high-level Python web framework
+
 
 df = pd.DataFrame()  # Global DataFrame to hold student data
 
+def secret_key():
+    """ Used to generate a secret key that will be used while hosting the application on the web with security
+
+    Returns:
+        Secret key in hexadecimal format
+    """
+    secret_bytes = os.urandom(24)  # Generates 24 random bytes
+    secret_key_bytes = secret_bytes.hex() # Converts the variable 'secret_bytes' into hexadecimal format
+    return secret_key_bytes
+
+app = Flask(__name__)
+app.secret_key = secret_key()
+
+# Database Connection Parameters
+DB_Name = "LMS"
+DB_USER = "User-Name"
+DB_Password = "Password"
+DB_HOST = "localhost"
+DB_Port = "5432"
 
 def authenticate(name, password):
     """
@@ -126,13 +147,6 @@ def update_table_value(
         print("Can not update the value:", e)
 
 
-# Database Connection Parameters
-DB_Name = "LMS"
-DB_USER = "User-Name"
-DB_Password = "Password"
-DB_HOST = "localhost"
-DB_Port = "5432"
-
 # Initialize connection and cursor
 conn = None
 cursor = None
@@ -145,6 +159,7 @@ try:
         host=DB_HOST,
         port=DB_Port,
     )
+    
     cursor = conn.cursor()
     print("Connected to the database")
 
