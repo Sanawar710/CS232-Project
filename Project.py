@@ -155,6 +155,40 @@ def deleteVal_rechecking(cursor, recheck_id):
     cursor.execute(script, (recheck_id,))
     conn.commit()
        
+def insert_course_prerequisite(course_id, prereq_id, cursor, conn):
+    script = '''INSERT INTO CoursePrerequisites (course_id, prerequisite_id) VALUES (%s, %s);'''
+    cursor.execute(script, (course_id, prereq_id))
+    conn.commit()
+
+
+def insert_user(name, email, password, role, profile_pic, cursor, conn):
+    script = '''INSERT INTO Users(name, email, password, role, profile_pic) VALUES (%s, %s, %s, %s, %s);'''
+    cursor.execute(script, (name, email, password, role, profile_pic))
+    conn.commit()
+
+
+def insert_course(title, credit_hours, instructor_id, semester, cursor, conn):
+    script = '''INSERT INTO Courses (title, credit_hours, instructor_id, semester) VALUES (%s, %s, %s, %s);'''
+    cursor.execute(script, (title, credit_hours, instructor_id, semester))
+    conn.commit()
+
+
+def insert_registration(user_id, course_id, status, semester, cursor, conn):
+    script = '''INSERT INTO Registrations(user_id, course_id, status, semester) VALUES (%s, %s, %s, %s);'''
+    cursor.execute(script, (user_id, course_id, status, semester))
+    conn.commit()
+
+
+def insert_result(user_id, course_id, quiz1, quiz2, midterm, final, total_marks, grade, cursor, conn):
+    script = '''INSERT INTO Results (user_id, course_id, quiz1, quiz2, midterm, final, total_marks, grade) VALUES (%s, %s, %s, %s, %s, %s, %s, %s);'''
+    cursor.execute(script, (user_id, course_id, quiz1, quiz2, midterm, final, total_marks, grade))
+    conn.commit()
+
+
+def insert_attendance(user_id, course_id, date, status, cursor, conn):
+    script = '''INSERT INTO Attendance (user_id, course_id, date, status) VALUES (%s, %s, %s, %s);'''
+    cursor.execute(script, (user_id, course_id, date, status))
+    conn.commit()
     
 # Initialize connection and cursor
 conn = None
