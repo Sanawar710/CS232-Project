@@ -1,23 +1,8 @@
-import os
+import tkinter as tk  # Tkinter is used for creating GUI applications
 import psycopg2 as pg  # 'psycopg2' is used to interact with the PostgreSQL database
 import pandas as pd  # Pandas is a data manipulation and analysis library
-from flask import Flask, render_template, request, redirect, url_for, session  # Flask is a high-level Python web framework
-
 
 df = pd.DataFrame()  # Global DataFrame to hold student data
-
-def secret_key():
-    """ Used to generate a secret key that will be used while hosting the application on the web with security
-
-    Returns:
-        Secret key in hexadecimal format
-    """
-    secret_bytes = os.urandom(24)  # Generates 24 random bytes
-    secret_key_bytes = secret_bytes.hex() # Converts the variable 'secret_bytes' into hexadecimal format
-    return secret_key_bytes
-
-app = Flask(__name__)
-app.secret_key = secret_key()
 
 # Database Connection Parameters
 DB_Name = "LMS"
@@ -25,6 +10,7 @@ DB_USER = "User-Name"
 DB_Password = "Password"
 DB_HOST = "localhost"
 DB_Port = "5432"
+
 
 def authenticate(name, password):
     """
@@ -87,64 +73,71 @@ def relative_grading(cursor):
         print(f"Error: {e}")
 
 
-def insert_data(cursor, table, columns, values):
-    """
-    Inserts data into a specified table.
-
-    Args:
-        cursor (psycopg2.cursor): The cursor object to execute queries.
-        table (str): Name of the table.
-        columns (list): List of column names.
-        values (list): List of values corresponding to the columns.
-
-    Returns:
-        None
-    """
-    try:
-        # Constructing the INSERT SQL query
-        # .join(columns) joins the column names with commas (e.g. "col1, col2")
-        # %s is a placeholder for values to be inserted (the parameters will replace the placeholders)
-        # ['%s'] * len(values) creates a new list where ['%s'] is repeated len(values) times.
-        # This is used to match the number of columns in the VALUES clause
-        query = f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(values))})"
-
-        # Executing the query with provided values
-        cursor.execute(query, values)
-        print(f"Data inserted successfully into {table}")
-
-    except Exception as e:
-        print("Error:", e)
-        print(f"Failed to insert data into {table}")
+def insertVal(course_id, prereq_id, cursor):
+    script = """INSERT INTO CoursePrerequisites (course_id, prerequisite_id) VALUES
+    (course_id, prerq_id);"""
+    cursor.execute(script, (course_id, prereq_id))
+    conn.commit()
 
 
-def update_table_value(
-    cursor, conn, table, column_to_update, new_value, condition_column, condition_value
-):
-    """Used to update the value of a specific column in a table based on a condition.
+# def insert_data(cursor, table, columns, values):
+#     """
+#     Inserts data into a specified table.
 
-    Args:
-        cursor: psycopg2 cursor object
-        conn: psycopg2 connection object
-        table: Name of the table
-        column_to_update: Name of the column to be updated
-        new_value: The value to be inserted instead of the old one
-        condition_column: The column on which the condition is to be applied
-        condition_value: Value to be matched for the condition
-    """
+#     Args:
+#         cursor (psycopg2.cursor): The cursor object to execute queries.
+#         table (str): Name of the table.
+#         columns (list): List of column names.
+#         values (list): List of values corresponding to the columns.
 
-    try:
-        query = f"""UPDATE {table}
-        SET {column_to_update} = %s
-        WHERE {condition_column} = %s;
-        """
-        cursor.execute(query, (new_value, condition_value))
-        conn.commit()
-        print(
-            f"Updated {column_to_update} to {new_value} in {table} where {condition_column} = {condition_value}"
-        )
-    except Exception as e:
-        conn.rollback()
-        print("Can not update the value:", e)
+#     Returns:
+#         None
+#     """
+#     try:
+#         # Constructing the INSERT SQL query
+#         # .join(columns) joins the column names with commas (e.g. "col1, col2")
+#         # %s is a placeholder for values to be inserted (the parameters will replace the placeholders)
+#         # ['%s'] * len(values) creates a new list where ['%s'] is repeated len(values) times.
+#         # This is used to match the number of columns in the VALUES clause
+#         query = f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(values))})"
+
+#         # Executing the query with provided values
+#         cursor.execute(query, values)
+#         print(f"Data inserted successfully into {table}")
+
+#     except Exception as e:
+#         print("Error:", e)
+#         print(f"Failed to insert data into {table}")
+
+
+# def update_table_value(
+#     cursor, conn, table, column_to_update, new_value, condition_column, condition_value
+# ):
+#     """Used to update the value of a specific column in a table based on a condition.
+
+#     Args:
+#         cursor: psycopg2 cursor object
+#         conn: psycopg2 connection object
+#         table: Name of the table
+#         column_to_update: Name of the column to be updated
+#         new_value: The value to be inserted instead of the old one
+#         condition_column: The column on which the condition is to be applied
+#         condition_value: Value to be matched for the condition
+#     """
+
+#     try:
+#         query = f"""UPDATE {table}
+#         SET {column_to_update} = %s
+#         WHERE {condition_column} = %s;
+#         """
+#         cursor.execute(query, (new_value, condition_value))
+#         conn.commit()
+#         print(
+#             f"Updated {column_to_update} to {new_value} in {table} where {condition_column} = {condition_value}"
+#         )
+#     except Exception as e:
+#         conn.rollback()
+#         print("Can not update the value:", e)
 
 
 # Initialize connection and cursor
@@ -159,7 +152,7 @@ try:
         host=DB_HOST,
         port=DB_Port,
     )
-    
+
     cursor = conn.cursor()
     print("Connected to the database")
 
