@@ -79,117 +79,228 @@ def insertVal_courseprereq(cursor, course_id, prereq_id):
     cursor.execute(script, (course_id, prereq_id))
     conn.commit()
 
-def insertVal_message(cursor, Message_id, sender_id, receiver_id, Message, Status, Time):
+
+def insertVal_message(
+    cursor, Message_id, sender_id, receiver_id, Message, Status, Time
+):
     script = """INSERT INTO message (Message_id, sender_id, receiver_id, Message, Status, Time) VALUES
     (%s, %s, %s, %s, %s, %s);"""
     cursor.execute(script, (Message_id, sender_id, receiver_id, Message, Status, Time))
     conn.commit()
-    
+
+
 def insertVal_bug(cursor, bug_id, sender_id, Description, status, Time):
     script = """INSERT INTO bug (bug_id, sender_id, Description, status, Time) VALUES
     (%s, %s, %s, %s, %s);"""
     cursor.execute(script, (bug_id, sender_id, Description, status, Time))
     conn.commit()
-    
-def insertVal_rechecking(cursor, recheck_id, sender_id, course_id, reason, created_at, exam_type, status):
+
+
+def insertVal_rechecking(
+    cursor, recheck_id, sender_id, course_id, reason, created_at, exam_type, status
+):
     script = """INSERT INTO rechecking (recheck_id, sender_id, course_id, reason, created_at, exam_type, status) VALUES
     (%s, %s, %s, %s, %s, %s, %s);"""
-    cursor.execute(script, (recheck_id, sender_id, course_id, reason, created_at, exam_type, status))
+    cursor.execute(
+        script,
+        (recheck_id, sender_id, course_id, reason, created_at, exam_type, status),
+    )
     conn.commit()
 
-def insertVal_recheck_appointments(cursor, appointment_id, recheck_id, appointment_time, remarks):
+
+def insertVal_recheck_appointments(
+    cursor, appointment_id, recheck_id, appointment_time, remarks
+):
     script = """INSERT INTO recheck_appointments (appointment_id, recheck_id, appointment_time, remarks) VALUES
     (%s, %s, %s, %s);"""
     cursor.execute(script, (appointment_id, recheck_id, appointment_time, remarks))
     conn.commit()
-    
-def insertVal_feedback(cursor, feedback_id, sender_id, course_id, instructor_id, rating, comments, time):
+
+
+def insertVal_feedback(
+    cursor, feedback_id, sender_id, course_id, instructor_id, rating, comments, time
+):
     script = """INSERT INTO feedback (feedback_id, sender_id, course_id, instructor_id, rating, comments, time) VALUES
     (%s, %s, %s, %s, %s, %s, %s);"""
-    cursor.execute(script, (feedback_id, sender_id, course_id, instructor_id, rating, comments, time))
+    cursor.execute(
+        script,
+        (feedback_id, sender_id, course_id, instructor_id, rating, comments, time),
+    )
     conn.commit()
-    
+
+
 def insertVal_academic_calendar(cursor, event_id, event_name, description, event_date):
     script = """INSERT INTO academic_calendar (event_id, event_name, description, event_date) VALUES
     (%s, %s, %s, %s);"""
     cursor.execute(script, (event_id, event_name, description, event_date))
     conn.commit()
 
-def updateVal_message(cursor, Message_id, sender_id, receiver_id, Message, Status, Time):
+
+def updateVal_message(
+    cursor, Message_id, sender_id, receiver_id, Message, Status, Time
+):
     script = """UPDATE message SET sender_id = %s, receiver_id = %s, Message = %s, Status = %s, Time = %s WHERE Message_id = %s;"""
     cursor.execute(script, (sender_id, receiver_id, Message, Status, Time, Message_id))
     conn.commit()
-    
+
+
 def updateVal_bug(cursor, bug_id, sender_id, Description, status, Time):
     script = """UPDATE bug SET sender_id = %s, Description = %s, status = %s, Time = %s WHERE bug_id = %s;"""
     cursor.execute(script, (sender_id, Description, status, Time, bug_id))
     conn.commit()
-    
-def updateVal_rechecking(cursor, recheck_id, sender_id, course_id, reason, created_at, exam_type, status):
+
+
+def updateVal_rechecking(
+    cursor, recheck_id, sender_id, course_id, reason, created_at, exam_type, status
+):
     script = """UPDATE rechecking SET sender_id = %s, course_id = %s, reason = %s, created_at = %s, exam_type = %s, status = %s WHERE recheck_id = %s;"""
-    cursor.execute(script, (sender_id, course_id, reason, created_at, exam_type, status, recheck_id))
+    cursor.execute(
+        script,
+        (sender_id, course_id, reason, created_at, exam_type, status, recheck_id),
+    )
     conn.commit()
-    
-def updateVal_feedback(cursor, feedback_id, sender_id, course_id, instructor_id, rating, comments, time):
+
+
+def updateVal_feedback(
+    cursor, feedback_id, sender_id, course_id, instructor_id, rating, comments, time
+):
     script = """UPDATE feedback SET sender_id = %s, course_id = %s, instructor_id = %s, rating = %s, comments = %s, time = %s WHERE feedback_id = %s;"""
-    cursor.execute(script, (sender_id, course_id, instructor_id, rating, comments, time, feedback_id))
+    cursor.execute(
+        script,
+        (sender_id, course_id, instructor_id, rating, comments, time, feedback_id),
+    )
     conn.commit()
-    
+
+
 def updateVal_academic_calendar(cursor, event_id, event_name, description, event_date):
     script = """UPDATE academic_calendar SET event_name = %s, description = %s, event_date = %s WHERE event_id = %s;"""
     cursor.execute(script, (event_name, description, event_date, event_id))
     conn.commit()
-    
+
+
 def deleteVal_message(cursor, Message_id):
     script = """DELETE FROM message WHERE Message_id = %s;"""
     cursor.execute(script, (Message_id,))
     conn.commit()
-    
+
+
 def deleteVal_bug(cursor, bug_id):
     script = """DELETE FROM bug WHERE bug_id = %s;"""
     cursor.execute(script, (bug_id,))
     conn.commit()
-    
+
+
 def deleteVal_rechecking(cursor, recheck_id):
     script = """DELETE FROM rechecking WHERE recheck_id = %s;"""
     cursor.execute(script, (recheck_id,))
     conn.commit()
-       
+
+
 def insert_course_prerequisite(course_id, prereq_id, cursor, conn):
-    script = '''INSERT INTO CoursePrerequisites (course_id, prerequisite_id) VALUES (%s, %s);'''
+    script = """INSERT INTO CoursePrerequisites (course_id, prerequisite_id) VALUES (%s, %s);"""
     cursor.execute(script, (course_id, prereq_id))
     conn.commit()
 
 
 def insert_user(name, email, password, role, profile_pic, cursor, conn):
-    script = '''INSERT INTO Users(name, email, password, role, profile_pic) VALUES (%s, %s, %s, %s, %s);'''
+    script = """INSERT INTO Users(name, email, password, role, profile_pic) VALUES (%s, %s, %s, %s, %s);"""
     cursor.execute(script, (name, email, password, role, profile_pic))
     conn.commit()
 
 
 def insert_course(title, credit_hours, instructor_id, semester, cursor, conn):
-    script = '''INSERT INTO Courses (title, credit_hours, instructor_id, semester) VALUES (%s, %s, %s, %s);'''
+    script = """INSERT INTO Courses (title, credit_hours, instructor_id, semester) VALUES (%s, %s, %s, %s);"""
     cursor.execute(script, (title, credit_hours, instructor_id, semester))
     conn.commit()
 
 
 def insert_registration(user_id, course_id, status, semester, cursor, conn):
-    script = '''INSERT INTO Registrations(user_id, course_id, status, semester) VALUES (%s, %s, %s, %s);'''
+    script = """INSERT INTO Registrations(user_id, course_id, status, semester) VALUES (%s, %s, %s, %s);"""
     cursor.execute(script, (user_id, course_id, status, semester))
     conn.commit()
 
 
-def insert_result(user_id, course_id, quiz1, quiz2, midterm, final, total_marks, grade, cursor, conn):
-    script = '''INSERT INTO Results (user_id, course_id, quiz1, quiz2, midterm, final, total_marks, grade) VALUES (%s, %s, %s, %s, %s, %s, %s, %s);'''
-    cursor.execute(script, (user_id, course_id, quiz1, quiz2, midterm, final, total_marks, grade))
+def insert_result(
+    user_id, course_id, quiz1, quiz2, midterm, final, total_marks, grade, cursor, conn
+):
+    script = """INSERT INTO Results (user_id, course_id, quiz1, quiz2, midterm, final, total_marks, grade) VALUES (%s, %s, %s, %s, %s, %s, %s, %s);"""
+    cursor.execute(
+        script, (user_id, course_id, quiz1, quiz2, midterm, final, total_marks, grade)
+    )
     conn.commit()
 
 
 def insert_attendance(user_id, course_id, date, status, cursor, conn):
-    script = '''INSERT INTO Attendance (user_id, course_id, date, status) VALUES (%s, %s, %s, %s);'''
+    script = """INSERT INTO Attendance (user_id, course_id, date, status) VALUES (%s, %s, %s, %s);"""
     cursor.execute(script, (user_id, course_id, date, status))
     conn.commit()
-    
+
+
+def insert_message(sender_id, receiver_id, message, status, time, cursor, conn):
+    script = """INSERT INTO message(sender_id, receiver_id, message, status, time) VALUES (%s, %s, %s, %s, %s);"""
+    cursor.execute(script, (sender_id, receiver_id, message, status, time))
+    conn.commit()
+
+
+def insert_bug(sender_id, description, status, time, cursor, conn):
+    script = """INSERT INTO bug(sender_id, description, status, time) VALUES (%s, %s, %s, %s);"""
+    cursor.execute(script, (sender_id, description, status, time))
+    conn.commit()
+
+
+def insert_rechecking(sender_id, course_id, reason, exam_type, status, cursor, conn):
+    script = """INSERT INTO rechecking(sender_id, course_id, reason, exam_type, status) 
+                VALUES (%s, %s, %s, %s, %s);"""
+    cursor.execute(script, (sender_id, course_id, reason, exam_type, status))
+    conn.commit()
+
+
+def insert_calendar_event(event_name, description, event_date, cursor, conn):
+    script = """INSERT INTO academic_calendar(event_name, description, event_date) VALUES (%s, %s, %s);"""
+    cursor.execute(script, (event_name, description, event_date))
+    conn.commit()
+
+
+def insert_feedback(
+    sender_id, course_id, instructor_id, rating, comments, time, cursor, conn
+):
+    script = """INSERT INTO feedback(sender_id, course_id, instructor_id, rating, comments, time)
+                VALUES (%s, %s, %s, %s, %s, %s);"""
+    cursor.execute(
+        script, (sender_id, course_id, instructor_id, rating, comments, time)
+    )
+    conn.commit()
+
+
+def insert_recheck_appointment(recheck_id, appointment_time, remarks, cursor, conn):
+    script = """INSERT INTO recheck_appointments(recheck_id, appointment_time, remarks) VALUES (%s, %s, %s);"""
+    cursor.execute(script, (recheck_id, appointment_time, remarks))
+    conn.commit()
+
+
+def update_rechecking_auto_status(cursor, conn):
+    script = """
+        UPDATE rechecking
+        SET status = CASE 
+            WHEN status = 'pending' AND CURRENT_TIMESTAMP - created_at > INTERVAL '10 days' THEN 'rejected'
+            WHEN status = 'pending' AND CURRENT_TIMESTAMP - created_at > INTERVAL '7 days' THEN 'approved'
+            ELSE status
+        END
+        WHERE status = 'pending';
+    """
+    cursor.execute(script)
+    conn.commit()
+
+
+def insert_discussion_thread(
+    course_id, instructor_id, message, status, created_at, cursor, conn
+):
+    script = """INSERT INTO DiscussionThreads(course_id, instructor_id, mesage, status, created_at)
+                VALUES (%s, %s, %s, %s, %s);"""
+    cursor.execute(script, (course_id, instructor_id, message, status, created_at))
+    conn.commit()
+
+
 # Initialize connection and cursor
 conn = None
 cursor = None
