@@ -1,6 +1,8 @@
 import tkinter as tk  # Tkinter is used for creating GUI applications
 import psycopg2 as pg  # 'psycopg2' is used to interact with the PostgreSQL database
 import pandas as pd  # Pandas is a data manipulation and analysis library
+import matplotlib.pyplot as plt  # Matplotlib is used for plotting graphs
+import numpy as np  # NumPy is used for numerical operations
 
 df = pd.DataFrame()  # Global DataFrame to hold student data
 
@@ -38,7 +40,9 @@ def Absolute_Grading(cursor):
             ELSE 'F'
         END;
         """
-        cursor.connection.commit(update_query)
+        cursor.execute(update_query)
+        conn.commit()
+
         print("Absolute grading applied successfully.")
     except Exception as e:
         print("Error in Absolute Grading:", e)
@@ -72,6 +76,46 @@ def relative_grading(cursor):
     except Exception as e:
         print(f"Error: {e}")
 
+
+def plot_percentage_distribution(
+    cursor, conn, table_name="Results", column_name="total_marks"
+):
+    try:
+        query = f"SELECT {column_name} FROM {table_name};"
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        percentages = [row[0] for row in rows]
+
+        if not percentages:
+            print("No data found in the table.")
+            return
+
+        data = np.array(percentages)
+        mean = np.mean(data)
+        std_dev = np.std(data)
+
+        # Histogram
+        count, bins, ignored = plt.hist(
+            data, bins=20, density=True, alpha=0.6, color="skyblue", edgecolor="black"
+        )
+
+        # Normal curve
+        x = np.linspace(min(data), max(data), 100) # Create an array of 100 evenly spaced values between the minimum and maximum of the data
+        y = (1 / (std_dev * np.sqrt(2 * np.pi))) * np.exp(
+            -0.5 * ((x - mean) / std_dev) ** 2
+        )
+        plt.plot(x, y, color="red", linewidth=2)
+
+        # Labels
+        plt.title("Normal Distribution of Total Percentages")
+        plt.xlabel("Total Percentage")
+        plt.ylabel("Density")
+        plt.grid(True)
+        plt.show()
+
+    except Exception as e:
+        print("Error:", e)
+        conn.rollback()  # Discards unwanted changes
 
 def insertVal_courseprereq(cursor, course_id, prereq_id):
     script = """INSERT INTO CoursePrerequisites (course_id, prerequisite_id) VALUES
@@ -295,7 +339,7 @@ def update_rechecking_auto_status(cursor, conn):
 def insert_discussion_thread(
     course_id, instructor_id, message, status, created_at, cursor, conn
 ):
-    script = """INSERT INTO DiscussionThreads(course_id, instructor_id, mesage, status, created_at)
+    script = """INSERT INTO DiscussionThreads(course_id, instructor_id, message, status, created_at)
                 VALUES (%s, %s, %s, %s, %s);"""
     cursor.execute(script, (course_id, instructor_id, message, status, created_at))
     conn.commit()
