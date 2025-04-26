@@ -323,7 +323,16 @@ def updateVal_rechecking(
     exam_type,
     status,
 ):
-    script = """UPDATE rechecking SET sender_id = %s, course_id = %s, reason = %s, created_at = %s, exam_type = %s, status = %s WHERE recheck_id = %s;"""
+    script = """
+    UPDATE rechecking
+    SET sender_id = %s,
+        course_id = %s,
+        reason = %s,
+        created_at = %s,
+        exam_type = %s,
+        status = %s
+    WHERE recheck_id = %s;
+    """
     cursor.execute(
         script,
         (sender_id, course_id, reason, created_at, exam_type, status, recheck_id),
@@ -511,6 +520,7 @@ try:
     cursor.execute(bugs_script)
     conn.commit()
 
+    # We created a recheck_appointments table and added a created_at column to track recheck request times. The status of rechecks is automatically updated based on time.
     rechecking_script = """CREATE TABLE IF NOT EXISTS rechecking (
         recheck_id SERIAL PRIMARY KEY,
         sender_id INT,
@@ -547,17 +557,6 @@ try:
         FOREIGN KEY (instructor_id) REFERENCES Users(user_id) ON DELETE CASCADE
     );"""
     cursor.execute(feedback_script)
-    conn.commit()
-
-    # We created a recheck_appointments table and added a created_at column to track recheck request times. The status of rechecks is automatically updated based on time.
-    recheck_appointments_script = """CREATE TABLE IF NOT EXISTS recheck_appointments (
-    appointment_id SERIAL PRIMARY KEY,
-    recheck_id INT UNIQUE,
-    appointment_time TIMESTAMP NOT NULL,
-    remarks TEXT,
-    FOREIGN KEY (recheck_id) REFERENCES rechecking(recheck_id) ON DELETE CASCADE
-    );"""
-    cursor.execute(recheck_appointments_script)
     conn.commit()
 
     update_rechecking_status_script = """ UPDATE rechecking
