@@ -504,6 +504,37 @@ try:
         FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE,
         FOREIGN KEY (instructor_id) REFERENCES Users(user_id) ON DELETE CASCADE
     );"""
+
+    class Menu:
+        def __init__(self):
+            self.user = None
+            self.admin = None
+
+        def display_menu(self):
+            print("Welcome to the Learning Management System")
+            print("1. Login as User")
+            print("2. Login as Admin")
+            print("3. Exit")
+
+        def login(self):
+            while True:
+                self.display_menu()
+                choice = input("Choose an option: ")
+
+                if choice == "1":
+                    # self.user = User()
+                    self.user.login()
+                    break
+                elif choice == "2":
+                    # self.admin = Admin()
+                    self.admin.login()
+                    break
+                elif choice == "3":
+                    print("Exiting... Goodbye!")
+                    break
+                else:
+                    print("Invalid choice. Please try again.")
+
     cursor.execute(discussion_script)
     conn.commit()
 
