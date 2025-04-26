@@ -1,6 +1,5 @@
 import tkinter as tk  # 'tkinter' is used for creating GUI applications
 import psycopg2 as pg  # 'psycopg2' is used to interact with the PostgreSQL database
-from psycopg2 import sql # 'sql' is used for SQL query construction and preventing SQL injection
 import pandas as pd  # 'pandas' is a data manipulation and analysis library
 import matplotlib.pyplot as plt  # 'matplotlib' is used for plotting graphs
 import numpy as np  # 'numpy' is used for numerical operations
@@ -505,6 +504,8 @@ try:
         FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE,
         FOREIGN KEY (instructor_id) REFERENCES Users(user_id) ON DELETE CASCADE
     );"""
+    cursor.execute(discussion_script)
+    conn.commit()
 
     class Menu:
         def __init__(self):
@@ -551,10 +552,9 @@ try:
             email = input("Enter your email: ")
             password = input("Enter your password: ")
 
-            query = sql.SQL(
-                "SELECT user_id, name, email, password, role FROM Users WHERE email = %s AND password = %s"
-            )
-            self.cursor.execute(query, (email, password))
+            authentication = """SELECT user_id, name, email, password, role FROM Users WHERE email = %s AND password = %s"""
+            self.cursor.execute(authentication, (email, password))
+            self.conn.commit()
 
             user = self.cursor.fetchone()
 
@@ -601,35 +601,59 @@ try:
         def view_courses(self):
             if self.role == "student":
                 print("Fetching courses for student...")
-                # Add logic to fetch and display courses for the student from database
+                name = input("Enter the name of the student: ")
+                fetch_record_of_students = (
+                    """SELECT * FROM Courses WHERE student_name = %s;"""
+                )
+                self.cursor.execute(fetch_record_of_students, (name,))
+                self.conn.commit()
+
             elif self.role == "instructor":
                 print("Fetching courses taught by instructor...")
-                # Add logic to fetch and display courses taught by the instructor from database
+                name = int(input("Enter the name of the instructor: "))
+                fetch_record_of_instructor = (
+                    """SELECT * FROM Courses WHERE instructor_name = %s;"""
+                )
+                self.cursor.execute(fetch_record_of_instructor, (name,))
+                self.conn.commit()
             else:
                 print("You don't have permission to view courses.")
 
         def view_grades(self):
             if self.role == "student":
                 print("Fetching your grades...")
-                # Add logic to fetch and display the student's grades from database
+                fetch_grades_of_student = (
+                    """SELECT * FROM Results WHERE user_id = %s;"""
+                )
+                self.cursor.execute(fetch_grades_of_student, (self.user_id,))
+                self.conn.commit()
             elif self.role == "instructor":
                 print("Fetching grades for your courses...")
-                # Add logic to fetch and display the grades for the instructor's courses
+                fetch_grades_of_instructor = (
+                    """SELECT * FROM Results WHERE instructor_id = %s;"""
+                )
+                self.cursor.execute(fetch_grades_of_instructor, (self.user_id,))
+                self.conn.commit()
             else:
                 print("You don't have permission to view grades.")
 
         def view_attendance(self):
             if self.role == "student":
                 print("Fetching your attendance...")
-                # Add logic to fetch and display the student's attendance from database
+                fetch_attendance_of_student = (
+                    """SELECT * FROM Attendance WHERE user_id = %s;"""
+                )
+                self.cursor.execute(fetch_attendance_of_student, (self.user_id,))
+                self.conn.commit()
             elif self.role == "instructor":
                 print("Fetching attendance for your students...")
-                # Add logic to fetch and display attendance for the instructor's students
+                fetch_attendance_of_instructor = (
+                    """SELECT * FROM Attendance WHERE instructor_id = %s;"""
+                )
+                self.cursor.execute(fetch_attendance_of_instructor, (self.user_id,))
+                self
             else:
                 print("You don't have permission to view attendance.")
-
-    cursor.execute(discussion_script)
-    conn.commit()
 
 except Exception as e:
     print("Error:", e)
