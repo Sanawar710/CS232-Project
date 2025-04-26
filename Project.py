@@ -1,5 +1,6 @@
 import tkinter as tk  # 'tkinter' is used for creating GUI applications
 import psycopg2 as pg  # 'psycopg2' is used to interact with the PostgreSQL database
+from psycopg2 import sql # 'sql' is used for SQL query construction and preventing SQL injection
 import pandas as pd  # 'pandas' is a data manipulation and analysis library
 import matplotlib.pyplot as plt  # 'matplotlib' is used for plotting graphs
 import numpy as np  # 'numpy' is used for numerical operations
@@ -534,6 +535,98 @@ try:
                     break
                 else:
                     print("Invalid choice. Please try again.")
+
+    class User:
+        def __init__(self, conn):
+            self.conn = conn
+            self.cursor = conn.cursor()
+            self.user_id = None
+            self.name = ""
+            self.email = ""
+            self.password = ""
+            self.role = ""
+            self.logged_in = False
+
+        def login(self):
+            email = input("Enter your email: ")
+            password = input("Enter your password: ")
+
+            query = sql.SQL(
+                "SELECT user_id, name, email, password, role FROM Users WHERE email = %s AND password = %s"
+            )
+            self.cursor.execute(query, (email, password))
+
+            user = self.cursor.fetchone()
+
+            if user:
+                self.user_id, self.name, self.email, self.password, self.role = user
+                self.logged_in = True
+                print(f"Welcome, {self.name} ({self.role})!")
+                self.user_menu()
+            else:
+                print("Invalid credentials. Please try again.")
+
+        def user_menu(self):
+            while self.logged_in:
+                print("\nUser Menu:")
+                if self.role == "student":
+                    print("1. View Courses")
+                    print("2. View Grades")
+                    print("3. View Attendance")
+                elif self.role == "instructor":
+                    print("1. View Courses")
+                    print("2. Add Grade")
+                    print("3. View Student Attendance")
+                elif self.role == "admin":
+                    print("1. Add User")
+                    print("2. View All Users")
+                    print("3. Manage System Settings")
+
+                print("4. Logout")
+                choice = input("Choose an option: ")
+
+                if choice == "1":
+                    self.view_courses()
+                elif choice == "2":
+                    self.view_grades()
+                elif choice == "3":
+                    self.view_attendance()
+                elif choice == "4":
+                    print("Logging out...")
+                    self.logged_in = False
+                    break
+                else:
+                    print("Invalid choice. Please try again.")
+
+        def view_courses(self):
+            if self.role == "student":
+                print("Fetching courses for student...")
+                # Add logic to fetch and display courses for the student from database
+            elif self.role == "instructor":
+                print("Fetching courses taught by instructor...")
+                # Add logic to fetch and display courses taught by the instructor from database
+            else:
+                print("You don't have permission to view courses.")
+
+        def view_grades(self):
+            if self.role == "student":
+                print("Fetching your grades...")
+                # Add logic to fetch and display the student's grades from database
+            elif self.role == "instructor":
+                print("Fetching grades for your courses...")
+                # Add logic to fetch and display the grades for the instructor's courses
+            else:
+                print("You don't have permission to view grades.")
+
+        def view_attendance(self):
+            if self.role == "student":
+                print("Fetching your attendance...")
+                # Add logic to fetch and display the student's attendance from database
+            elif self.role == "instructor":
+                print("Fetching attendance for your students...")
+                # Add logic to fetch and display attendance for the instructor's students
+            else:
+                print("You don't have permission to view attendance.")
 
     cursor.execute(discussion_script)
     conn.commit()
