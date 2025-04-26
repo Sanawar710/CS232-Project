@@ -14,17 +14,6 @@ DB_HOST = "localhost"
 DB_Port = "5432"
 
 
-def authenticate(name, password):
-    """
-    Args:
-        name (str): The username of the user.
-        password (str): The password of the user.
-    Returns:
-        bool: True if the username is "admin" and the password is "ABC", else False.
-    """
-    return name == "admin" and password == "ABC"
-
-
 def absolute_grading(cursor, conn):
     """
     Applies absolute grading to students' marks and updates the 'Grade' column in the 'Results' table.
