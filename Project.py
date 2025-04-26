@@ -9,7 +9,7 @@ df = pd.DataFrame()  # Global DataFrame to hold student data
 # Database Connection Parameters
 DB_Name = "LMS"
 DB_USER = "User-Name"
-DB_Password = "Password"
+DB_Password = "admin"
 DB_HOST = "localhost"
 DB_Port = "5432"
 
@@ -25,7 +25,7 @@ def authenticate(name, password):
     return name == "admin" and password == "ABC"
 
 
-def Absolute_Grading(cursor, conn):
+def absolute_grading(cursor, conn):
     """
     Applies absolute grading to students' marks and updates the 'Grade' column in the 'Results' table.
     Grading is based on fixed marks ranges.
@@ -53,7 +53,7 @@ def relative_grading(cursor):
     """This function is used to caluclate the relative grade of the student based on the Z-Score."""
     try:
         # Calculate the mean and standard deviation for relative grading
-        cursor.execute("SELECT AVG(Marks), STDDEV(Marks) FROM Results;")
+        cursor.execute("SELECT AVG(total_marks), STDDEV(total_marks) FROM Results;")
         mean, stddev = cursor.fetchone()
 
         # Using the CASE expression to categorize grades based on mean and stddev
@@ -118,13 +118,6 @@ def plot_percentage_distribution(
     except Exception as e:
         print("Error:", e)
         conn.rollback()  # Discards unwanted changes
-
-
-def insertVal_courseprereq(cursor, conn, course_id, prereq_id):
-    script = """INSERT INTO CoursePrerequisites (course_id, prerequisite_id) VALUES
-    (course_id, prerq_id);"""
-    cursor.execute(script, (course_id, prereq_id))
-    conn.commit()
 
 
 def insertVal_message(
@@ -362,8 +355,7 @@ def insert_recheck_appointment(recheck_id, appointment_time, remarks, cursor, co
 
 
 def update_rechecking_auto_status(cursor, conn):
-    script = """
-        UPDATE rechecking
+    script = """UPDATE rechecking
         SET status = CASE 
             WHEN status = 'pending' AND CURRENT_TIMESTAMP - created_at > INTERVAL '10 days' THEN 'rejected'
             WHEN status = 'pending' AND CURRENT_TIMESTAMP - created_at > INTERVAL '7 days' THEN 'approved'
