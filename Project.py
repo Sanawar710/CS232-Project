@@ -71,7 +71,7 @@ def relative_grading(cursor):
         )
 
         # Commit the changes to the database
-        cursor.commit()
+        conn.commit()
 
     except Exception as e:
         print(f"Error: {e}")
@@ -118,80 +118,6 @@ def plot_percentage_distribution(
     except Exception as e:
         print("Error:", e)
         conn.rollback()  # Discards unwanted changes
-
-
-def insertVal_message(
-    cursor, conn, Message_id, sender_id, receiver_id, Message, Status, Time
-):
-    script = """INSERT INTO message (Message_id, sender_id, receiver_id, Message, Status, Time) VALUES
-    (%s, %s, %s, %s, %s, %s);"""
-    cursor.execute(script, (Message_id, sender_id, receiver_id, Message, Status, Time))
-    conn.commit()
-
-
-def insertVal_bug(cursor, conn, bug_id, sender_id, Description, status, Time):
-    script = """INSERT INTO bug (bug_id, sender_id, Description, status, Time) VALUES
-    (%s, %s, %s, %s, %s);"""
-    cursor.execute(script, (bug_id, sender_id, Description, status, Time))
-    conn.commit()
-
-
-def insertVal_rechecking(
-    cursor,
-    conn,
-    recheck_id,
-    sender_id,
-    course_id,
-    reason,
-    created_at,
-    exam_type,
-    status,
-):
-    script = """INSERT INTO rechecking (recheck_id, sender_id, course_id, reason, created_at, exam_type, status) VALUES
-    (%s, %s, %s, %s, %s, %s, %s);"""
-    cursor.execute(
-        script,
-        (recheck_id, sender_id, course_id, reason, created_at, exam_type, status),
-    )
-    conn.commit()
-
-
-def insertVal_recheck_appointments(
-    cursor, conn, appointment_id, recheck_id, appointment_time, remarks
-):
-    script = """INSERT INTO recheck_appointments (appointment_id, recheck_id, appointment_time, remarks) VALUES
-    (%s, %s, %s, %s);"""
-    cursor.execute(script, (appointment_id, recheck_id, appointment_time, remarks))
-    conn.commit()
-
-
-def insertVal_feedback(
-    cursor,
-    conn,
-    feedback_id,
-    sender_id,
-    course_id,
-    instructor_id,
-    rating,
-    comments,
-    time,
-):
-    script = """INSERT INTO feedback (feedback_id, sender_id, course_id, instructor_id, rating, comments, time) VALUES
-    (%s, %s, %s, %s, %s, %s, %s);"""
-    cursor.execute(
-        script,
-        (feedback_id, sender_id, course_id, instructor_id, rating, comments, time),
-    )
-    conn.commit()
-
-
-def insertVal_academic_calendar(
-    cursor, conn, event_id, event_name, description, event_date
-):
-    script = """INSERT INTO academic_calendar (event_id, event_name, description, event_date) VALUES
-    (%s, %s, %s, %s);"""
-    cursor.execute(script, (event_id, event_name, description, event_date))
-    conn.commit()
 
 
 def insert_course_prerequisite(course_id, prereq_id, cursor, conn):
