@@ -1,8 +1,8 @@
-import tkinter as tk  # Tkinter is used for creating GUI applications
+import tkinter as tk  # 'tkinter' is used for creating GUI applications
 import psycopg2 as pg  # 'psycopg2' is used to interact with the PostgreSQL database
-import pandas as pd  # Pandas is a data manipulation and analysis library
-import matplotlib.pyplot as plt  # Matplotlib is used for plotting graphs
-import numpy as np  # NumPy is used for numerical operations
+import pandas as pd  # 'pandas' is a data manipulation and analysis library
+import matplotlib.pyplot as plt  # 'matplotlib' is used for plotting graphs
+import numpy as np  # 'numpy' is used for numerical operations
 
 df = pd.DataFrame()  # Global DataFrame to hold student data
 
@@ -71,7 +71,7 @@ def relative_grading(cursor):
         )
 
         # Commit the changes to the database
-        cursor.connection.commit()
+        cursor.commit()
 
     except Exception as e:
         print(f"Error: {e}")
@@ -194,84 +194,6 @@ def insertVal_academic_calendar(
     conn.commit()
 
 
-def updateVal_message(
-    cursor, conn, Message_id, sender_id, receiver_id, Message, Status, Time
-):
-    script = """UPDATE message SET sender_id = %s, receiver_id = %s, Message = %s, Status = %s, Time = %s WHERE Message_id = %s;"""
-    cursor.execute(script, (sender_id, receiver_id, Message, Status, Time, Message_id))
-    conn.commit()
-
-
-def updateVal_bug(cursor, conn, bug_id, sender_id, Description, status, Time):
-    script = """UPDATE bug SET sender_id = %s, Description = %s, status = %s, Time = %s WHERE bug_id = %s;"""
-    cursor.execute(script, (sender_id, Description, status, Time, bug_id))
-    conn.commit()
-
-
-def updateVal_rechecking(
-    cursor,
-    conn,
-    recheck_id,
-    sender_id,
-    course_id,
-    reason,
-    created_at,
-    exam_type,
-    status,
-):
-    script = """UPDATE rechecking SET sender_id = %s, course_id = %s, reason = %s, created_at = %s, exam_type = %s, status = %s WHERE recheck_id = %s;"""
-    cursor.execute(
-        script,
-        (sender_id, course_id, reason, created_at, exam_type, status, recheck_id),
-    )
-    conn.commit()
-
-
-def updateVal_feedback(
-    cursor,
-    conn,
-    feedback_id,
-    sender_id,
-    course_id,
-    instructor_id,
-    rating,
-    comments,
-    time,
-):
-    script = """UPDATE feedback SET sender_id = %s, course_id = %s, instructor_id = %s, rating = %s, comments = %s, time = %s WHERE feedback_id = %s;"""
-    cursor.execute(
-        script,
-        (sender_id, course_id, instructor_id, rating, comments, time, feedback_id),
-    )
-    conn.commit()
-
-
-def updateVal_academic_calendar(
-    cursor, conn, event_id, event_name, description, event_date
-):
-    script = """UPDATE academic_calendar SET event_name = %s, description = %s, event_date = %s WHERE event_id = %s;"""
-    cursor.execute(script, (event_name, description, event_date, event_id))
-    conn.commit()
-
-
-def deleteVal_message(cursor, conn, Message_id):
-    script = """DELETE FROM message WHERE Message_id = %s;"""
-    cursor.execute(script, (Message_id,))
-    conn.commit()
-
-
-def deleteVal_bug(cursor, conn, bug_id):
-    script = """DELETE FROM bug WHERE bug_id = %s;"""
-    cursor.execute(script, (bug_id,))
-    conn.commit()
-
-
-def deleteVal_rechecking(cursor, conn, recheck_id):
-    script = """DELETE FROM rechecking WHERE recheck_id = %s;"""
-    cursor.execute(script, (recheck_id,))
-    conn.commit()
-
-
 def insert_course_prerequisite(course_id, prereq_id, cursor, conn):
     script = """INSERT INTO CoursePrerequisites (course_id, prerequisite_id) VALUES (%s, %s);"""
     cursor.execute(script, (course_id, prereq_id))
@@ -373,6 +295,84 @@ def insert_discussion_thread(
     script = """INSERT INTO DiscussionThreads(course_id, instructor_id, message, status, created_at)
                 VALUES (%s, %s, %s, %s, %s);"""
     cursor.execute(script, (course_id, instructor_id, message, status, created_at))
+    conn.commit()
+
+
+def updateVal_message(
+    cursor, conn, Message_id, sender_id, receiver_id, Message, Status, Time
+):
+    script = """UPDATE message SET sender_id = %s, receiver_id = %s, Message = %s, Status = %s, Time = %s WHERE Message_id = %s;"""
+    cursor.execute(script, (sender_id, receiver_id, Message, Status, Time, Message_id))
+    conn.commit()
+
+
+def updateVal_bug(cursor, conn, bug_id, sender_id, Description, status, Time):
+    script = """UPDATE bug SET sender_id = %s, Description = %s, status = %s, Time = %s WHERE bug_id = %s;"""
+    cursor.execute(script, (sender_id, Description, status, Time, bug_id))
+    conn.commit()
+
+
+def updateVal_rechecking(
+    cursor,
+    conn,
+    recheck_id,
+    sender_id,
+    course_id,
+    reason,
+    created_at,
+    exam_type,
+    status,
+):
+    script = """UPDATE rechecking SET sender_id = %s, course_id = %s, reason = %s, created_at = %s, exam_type = %s, status = %s WHERE recheck_id = %s;"""
+    cursor.execute(
+        script,
+        (sender_id, course_id, reason, created_at, exam_type, status, recheck_id),
+    )
+    conn.commit()
+
+
+def updateVal_feedback(
+    cursor,
+    conn,
+    feedback_id,
+    sender_id,
+    course_id,
+    instructor_id,
+    rating,
+    comments,
+    time,
+):
+    script = """UPDATE feedback SET sender_id = %s, course_id = %s, instructor_id = %s, rating = %s, comments = %s, time = %s WHERE feedback_id = %s;"""
+    cursor.execute(
+        script,
+        (sender_id, course_id, instructor_id, rating, comments, time, feedback_id),
+    )
+    conn.commit()
+
+
+def updateVal_academic_calendar(
+    cursor, conn, event_id, event_name, description, event_date
+):
+    script = """UPDATE academic_calendar SET event_name = %s, description = %s, event_date = %s WHERE event_id = %s;"""
+    cursor.execute(script, (event_name, description, event_date, event_id))
+    conn.commit()
+
+
+def deleteVal_message(cursor, conn, Message_id):
+    script = """DELETE FROM message WHERE Message_id = %s;"""
+    cursor.execute(script, (Message_id,))
+    conn.commit()
+
+
+def deleteVal_bug(cursor, conn, bug_id):
+    script = """DELETE FROM bug WHERE bug_id = %s;"""
+    cursor.execute(script, (bug_id,))
+    conn.commit()
+
+
+def deleteVal_rechecking(cursor, conn, recheck_id):
+    script = """DELETE FROM rechecking WHERE recheck_id = %s;"""
+    cursor.execute(script, (recheck_id,))
     conn.commit()
 
 
