@@ -1,22 +1,22 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
-import psycopg2 as pg
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
-from datetime import datetime
+import tkinter as tk  # 'tkinter' is a standard GUI toolkit in Python.
+from tkinter import ttk, messagebox  # 'ttk' is a themed widget set for tkinter.
+import psycopg2 as pg  # 'psycopg2' is used to connect to PostgreSQL databases with Python.
+import pandas as pd  # 'pandas' is a data manipulation and analysis library.
+import matplotlib.pyplot as plt  # 'matplotlib' is a plotting library for Python.
+import numpy as np  # 'numpy' is a library for numerical computations in Python.
 
 df = pd.DataFrame()
 
 # Database Connection Parameters
 DB_Name = "LMS"
-DB_USER = "User-Name" # Error caused by this line. Need to be replaced with the actual username.
+DB_USER = "User-Name"  # Error caused by this line. Need to be replaced with the actual username.
 DB_Password = "admin"
 DB_HOST = "localhost"
 DB_Port = "5432"
 
 
 def connect_db():
+    """Connect to the PostgreSQL database and return the connection and cursor."""
     try:
         conn = pg.connect(
             database=DB_Name,
@@ -35,6 +35,11 @@ def connect_db():
 
 
 def close_db(conn, cursor):
+    """Close the database connection and cursor.
+    Args:
+        conn : The database connection object.
+        cursor : The database cursor object.
+    """
     if cursor:
         cursor.close()
     if conn:
@@ -42,6 +47,18 @@ def close_db(conn, cursor):
 
 
 def execute_query(conn, cursor, query, params=None, fetch=False):
+    """Execute a SQL query with optional parameters.
+    This function handles both SELECT and non-SELECT queries. If 'fetch' is True, it fetches the results.
+
+    Args:
+        conn : The database connection object.
+        cursor : The database cursor object.
+        query (_type_): The SQL query to execute.
+        params (_type_, optional): The parameters to pass to the query. Defaults to None.
+        fetch (bool, optional): Whether to fetch results. Defaults to False.
+    Returns:
+        _type_: The result of the query if 'fetch' is True, otherwise None.
+    """
     try:
         cursor.execute(query, params)
         conn.commit()
@@ -695,6 +712,7 @@ class LMSApp:
                    WHERE c.title = %s AND c.instructor_id = %s"""
 
 
+# Starting the GUI Application
 if __name__ == "__main__":
     root = tk.Tk()
     app = LMSApp(root)
