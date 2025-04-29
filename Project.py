@@ -9,7 +9,7 @@ df = pd.DataFrame()
 
 # Database Connection Parameters
 DB_Name = "LMS"
-DB_USER = "User-Name"  # Error caused by this line. Need to be replaced with the actual username.
+DB_USER = "postgres"  
 DB_Password = "admin"
 DB_HOST = "localhost"
 DB_Port = "5432"
