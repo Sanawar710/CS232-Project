@@ -358,6 +358,11 @@ class LMSApp:
         )
         login_admin_button.pack(pady=10)
 
+        register_user_button = ttk.Button(
+            self.root, text="Register", command=self.show_registration_form
+        )
+        register_user_button.pack(pady=10)
+
         exit_button = ttk.Button(self.root, text="Exit", command=self.root.destroy)
         exit_button.pack(pady=10)
 
@@ -875,9 +880,91 @@ class LMSApp:
                    JOIN Courses c ON r.course_id = c.course_id
                    WHERE c.title = %s AND c.instructor_id = %s"""
 
+    def show_registration_form(self):
+        self.clear_window()
+        title_label = ttk.Label(self.root, text="Register User", font=("Arial", 14))
+        title_label.pack(pady=20)
+
+        name_label = ttk.Label(self.root, text="Name:")
+        name_label.pack()
+        self.name_entry = ttk.Entry(self.root)
+        self.name_entry.pack(pady=5)
+
+        email_label = ttk.Label(self.root, text="Email:")
+        email_label.pack()
+        self.email_entry = ttk.Entry(self.root)
+        self.email_entry.pack(pady=5)
+
+        password_label = ttk.Label(self.root, text="Password:")
+        password_label.pack()
+        self.password_entry = ttk.Entry(self.root, show="*")
+        self.password_entry.pack(pady=5)
+
+        role_label = ttk.Label(self.root, text="Role:")
+        role_label.pack()
+        self.role_combobox = ttk.Combobox(
+            self.root, values=["student", "instructor", "admin"], state="readonly"
+        )
+        self.role_combobox.pack(pady=5)
+        self.role_combobox.set("student")  # Default role
+
+        register_button = ttk.Button(
+            self.root, text="Register", command=self.register_user
+        )
+        register_button.pack(pady=10)
+
+        back_button = ttk.Button(
+            self.root, text="Back to Menu", command=self.show_login_menu
+        )
+        back_button.pack(pady=5)
+
+    def register_user(self):
+        name = self.name_entry.get()
+        email = self.email_entry.get()
+        password = self.password_entry.get()
+        role = self.role_combobox.get()
+
+        if not name or not email or not password or not role:
+            messagebox.showerror("Registration Error", "All fields are required.")
+            return
+
+        # Basic email validation
+        if "@" not in email:
+            messagebox.showerror("Registration Error", "Invalid email address.")
+            return
+
+        # TODO: Password strength validation
+
+        # Check if email already exists
+        check_email_query = "SELECT email FROM Users WHERE email = %s"
+        self.cursor.execute(check_email_query, (email,))
+        if self.cursor.fetchone():
+            messagebox.showerror(
+                "Registration Error", "Email address already registered."
+            )
+            return
+
+        # Insert new user into the database
+        insert_user_query = (
+            "INSERT INTO Users (name, email, password, role) VALUES (%s, %s, %s, %s)"
+        )
+        try:
+            self.cursor.execute(insert_user_query, (name, email, password, role))
+            self.conn.commit()
+            messagebox.showinfo(
+                "Registration Successful",
+                "You have been successfully registered. Please log in.",
+            )
+            self.show_login_menu()  # Go back to login menu
+        except Exception as e:
+            self.conn.rollback()
+            messagebox.showerror("Registration Error", f"Failed to register user: {e}")
+            return
+
 
 # Starting the GUI Application
 if __name__ == "__main__":
     root = tk.Tk()
     app = LMSApp(root)
     root.mainloop()
+    root.destroy()
