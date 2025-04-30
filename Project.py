@@ -9,7 +9,7 @@ df = pd.DataFrame()
 
 # Database Connection Parameters
 DB_Name = "LMS"
-DB_USER = "postgres"  
+DB_USER = "postgres"
 DB_Password = "admin"
 DB_HOST = "localhost"
 DB_Port = "5432"
@@ -172,6 +172,170 @@ class LMSApp:
             return
         self.user = None
         self.show_login_menu()
+
+    def _execute_code1(self):
+        user_script = """CREATE TABLE IF NOT EXISTS Users (
+            user_id SERIAL PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            email VARCHAR(100) NOT NULL UNIQUE,
+            password VARCHAR(255) NOT NULL,
+            role VARCHAR(20) NOT NULL CHECK (role IN ('student', 'instructor', 'admin'))
+        );"""
+        execute_query(self.conn, self.cursor, user_script)
+
+        student_script = """CREATE TABLE IF NOT EXISTS Students (
+            program VARCHAR(50),
+            semester INT
+        ) INHERITS (Users);"""
+        execute_query(self.conn, self.cursor, student_script)
+
+        instructor_script = """CREATE TABLE IF NOT EXISTS Instructors (
+            department VARCHAR(100),
+            designation VARCHAR(50)
+        ) INHERITS (Users);"""
+        execute_query(self.conn, self.cursor, instructor_script)
+
+        admin_script = """CREATE TABLE IF NOT EXISTS Admins (
+            role_description TEXT
+        ) INHERITS (Users);"""
+        execute_query(self.conn, self.cursor, admin_script)
+
+        courses_script = """CREATE TABLE IF NOT EXISTS Courses (
+            course_id SERIAL PRIMARY KEY,
+            title VARCHAR(100) NOT NULL,
+            credit_hours INT NOT NULL CHECK (credit_hours BETWEEN 1 AND 4),
+            instructor_id INT,
+            semester VARCHAR(20),
+            FOREIGN KEY (instructor_id) REFERENCES Users(user_id) ON DELETE CASCADE
+        );"""
+        execute_query(self.conn, self.cursor, courses_script)
+
+        course_prerequisite_script = """CREATE TABLE IF NOT EXISTS CoursePrerequisites (
+            course_id INT,
+            prerequisite_id INT,
+            PRIMARY KEY (course_id, prerequisite_id),
+            FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE,
+            FOREIGN KEY (prerequisite_id) REFERENCES Courses(course_id) ON DELETE CASCADE
+        );"""
+        execute_query(self.conn, self.cursor, course_prerequisite_script)
+
+        registration_script = """CREATE TABLE IF NOT EXISTS Registrations (
+            registration_id SERIAL PRIMARY KEY,
+            user_id INT NOT NULL,
+            course_id INT NOT NULL,
+            status VARCHAR(20) DEFAULT 'enrolled',
+            semester VARCHAR(20),
+            FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+            FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE,
+            CHECK (
+                (semester = '1' AND status = 'enrolled') OR
+                (semester <> '1' AND status IN ('enrolled', 'completed', 'dropped'))
+            )
+        );"""
+        execute_query(self.conn, self.cursor, registration_script)
+
+        result_script = """CREATE TABLE IF NOT EXISTS Results (
+            result_id SERIAL PRIMARY KEY,
+            user_id INT NOT NULL,
+            course_id INT NOT NULL,
+            quiz1 FLOAT DEFAULT 0,
+            quiz2 FLOAT DEFAULT 0,
+            midterm FLOAT DEFAULT 0,
+            final FLOAT DEFAULT 0,
+            total_marks FLOAT DEFAULT 0,
+            grade VARCHAR(2),
+            FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+            FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE
+        );"""
+        execute_query(self.conn, self.cursor, result_script)
+
+        attendance_script = """CREATE TABLE IF NOT EXISTS Attendance (
+            attendance_id SERIAL PRIMARY KEY,
+            user_id INT NOT NULL,
+            course_id INT NOT NULL,
+            date DATE NOT NULL,
+            status VARCHAR(10) CHECK (status IN ('present', 'absent', 'late')) NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+            FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE
+        );"""
+        execute_query(self.conn, self.cursor, attendance_script)
+
+        message_script = """CREATE TABLE IF NOT EXISTS message (
+            Message_id SERIAL PRIMARY KEY,
+            sender_id INT,
+            receiver_id INT,
+            Message TEXT,
+            Status VARCHAR(100),
+            Time TIMESTAMP,
+            FOREIGN KEY (sender_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+            FOREIGN KEY (receiver_id) REFERENCES Users(user_id) ON DELETE CASCADE
+        );"""
+        execute_query(self.conn, self.cursor, message_script)
+
+        bugs_script = """CREATE TABLE IF NOT EXISTS bug (
+            bug_id SERIAL PRIMARY KEY,
+            sender_id INT,
+            Description TEXT NOT NULL,
+            status VARCHAR(10) CHECK (status IN ('open', 'in_progress', 'closed')) NOT NULL,
+            Time TIMESTAMP,
+            FOREIGN KEY (sender_id) REFERENCES Users(user_id) ON DELETE CASCADE
+        );"""
+        execute_query(self.conn, self.cursor, bugs_script)
+
+        rechecking_script = """CREATE TABLE IF NOT EXISTS rechecking (
+            recheck_id SERIAL PRIMARY KEY,
+            sender_id INT,
+            course_id INT,
+            reason TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            exam_type VARCHAR(10) CHECK (exam_type IN ('quiz', 'mid term', 'final')) NOT NULL,
+            status VARCHAR(10) CHECK (status IN ('pending', 'approved', 'rejected')) NOT NULL,
+            FOREIGN KEY (sender_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+            FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE
+        );"""
+        execute_query(self.conn, self.cursor, rechecking_script)
+
+        calendar_script = """CREATE TABLE IF NOT EXISTS academic_calendar (
+            event_id SERIAL PRIMARY KEY,
+            event_name VARCHAR(100) NOT NULL,
+            description TEXT NOT NULL,
+            event_date DATE
+        );"""
+        execute_query(self.conn, self.cursor, calendar_script)
+
+        feedback_script = """CREATE TABLE IF NOT EXISTS feedback (
+            feedback_id SERIAL PRIMARY KEY,
+            sender_id INT,
+            course_id INT,
+            instructor_id INT,
+            rating INT CHECK (rating BETWEEN 1 AND 5),
+            comments TEXT,
+            time TIMESTAMP,
+            FOREIGN KEY (sender_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+            FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE,
+            FOREIGN KEY (instructor_id) REFERENCES Users(user_id) ON DELETE CASCADE
+        );"""
+        execute_query(self.conn, self.cursor, feedback_script)
+
+        update_rechecking_status_script = """ UPDATE rechecking
+        SET status = CASE
+                            WHEN status = 'pending' AND CURRENT_TIMESTAMP - created_at > INTERVAL '10 days' THEN 'rejected'
+                            WHEN status = 'pending' AND CURRENT_TIMESTAMP - created_at > INTERVAL '7 days' THEN 'approved'
+                            ELSE status
+                        END
+        WHERE status = 'pending';
+        """
+        execute_query(self.conn, self.cursor, update_rechecking_status_script)
+
+        discussion_script = """CREATE TABLE DiscussionThreads (
+            thread_id SERIAL PRIMARY KEY,
+            mesage TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'deleted', 'locked', 'archived')),
+            FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE,
+            FOREIGN KEY (instructor_id) REFERENCES Users(user_id) ON DELETE CASCADE
+        );"""
+        execute_query(self.conn, self.cursor, discussion_script)
 
     def clear_window(self):
         for widget in self.root.winfo_children():
