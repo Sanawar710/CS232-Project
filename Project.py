@@ -1,4 +1,3 @@
-import datetime  # 'datetime' is a module for manipulating dates and times.
 import tkinter as tk  # 'tkinter' is a standard GUI toolkit in Python.
 from tkinter import ttk, messagebox  # 'ttk' is a themed widget set for tkinter.
 import psycopg2 as pg  # 'psycopg2' is used to connect to PostgreSQL databases with Python.
@@ -37,6 +36,7 @@ def connect_db():
 
 def close_db(conn, cursor):
     """Close the database connection and cursor.
+
     Args:
         conn : The database connection object.
         cursor : The database cursor object.
@@ -49,6 +49,7 @@ def close_db(conn, cursor):
 
 def execute_query(conn, cursor, query, params=None, fetch=False):
     """Execute a SQL query with optional parameters.
+
     This function handles both SELECT and non-SELECT queries. If 'fetch' is True, it fetches the results.
 
     Args:
@@ -398,30 +399,33 @@ class LMSApp:
         back_button = ttk.Button(
             self.root, text="Back to Menu", command=self.show_login_menu
         )
-        back_button.pack(pady=5)
+        back_button.pack(pady=10)
 
     def authenticate_user(self):
         email = self.email_entry.get()
         password = self.password_entry.get()
-        query = "SELECT user_id, name, email, role FROM Users WHERE email = %s AND password = %s"
-        result = execute_query(
-            self.conn, self.cursor, query, (email, password), fetch=True
+
+        if not email or not password:
+            messagebox.showerror("Login Error", "Please enter both email and password.")
+            return
+
+        query = (
+            "SELECT user_id, name, role FROM Users WHERE email = %s AND password = %s"
         )
-        if result:
-            self.user_id, self.name, self.email, self.role = result[0]
-            messagebox.showinfo(
-                "Login Successful", f"Welcome, {self.name} ({self.role})!"
-            )
+        self.cursor.execute(query, (email, password))
+        user_data = self.cursor.fetchone()
+
+        if user_data:
+            self.user_id, self.user_name, self.role = user_data
+            messagebox.showinfo("Login Successful", f"Welcome, {self.user_name}!")
             self.show_user_menu()
         else:
-            messagebox.showerror(
-                "Login Failed", "Invalid credentials. Please try again."
-            )
+            messagebox.showerror("Login Error", "Invalid email or password.")
 
     def show_user_menu(self):
-        print(f"Current role: {self.role}")  # Add this line
+        print(f"Current role: {self.role}")
         self.clear_window()
-        
+
         if self.role == "student":
             menu_label = ttk.Label(self.root, text="User Menu", font=("Arial", 16))
             menu_label.pack(pady=20)
@@ -436,12 +440,14 @@ class LMSApp:
             ).pack(pady=5)
             ttk.Button(
                 self.root, text="Request Rechecking", command=self.request_rechecking
-            ).pack(
+            ).pack(pady=5)
+            ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(
                 pady=5
-            )  
+            )  # Added bug report button
 
         elif self.role == "admin":
-            ttk.Label(self.root, text="Admin Section", font=("Arial", 16)).pack(pady=10)
+            menu_label = ttk.Label(self.root, text="Admin Section", font=("Arial", 16))
+            menu_label.pack(pady=10)
 
             ttk.Button(self.root, text="Manage Users", command=self.manage_users).pack(
                 pady=5
@@ -470,697 +476,43 @@ class LMSApp:
             ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(
                 pady=10
             )
-
-    def show_grading_options(self):
-        grading_window = tk.Toplevel(self.root)
-        grading_window.title("Apply Grading")
-
-        ttk.Button(
-            grading_window,
-            text="Absolute Grading",
-            command=lambda: absolute_grading(self.conn, self.cursor),
-        ).pack(pady=10, padx=20)
-        ttk.Button(
-            grading_window,
-            text="Relative Grading",
-            command=lambda: relative_grading(self.conn, self.cursor),
-        ).pack(pady=10, padx=20)
-
-    def view_courses(self):
-        self.clear_window()
-        title_label = ttk.Label(self.root, text="View Courses", font=("Arial", 14))
-        title_label.pack(pady=10)
-
-        if self.role == "student":
-            query = """SELECT c.title, c.credit_hours, u.name AS instructor, c.semester
-                       FROM Registrations r
-                       JOIN Courses c ON r.course_id = c.course_id
-                       JOIN Users u ON c.instructor_id = u.user_id
-                       WHERE r.user_id = %s"""
-            courses = execute_query(
-                self.conn, self.cursor, query, (self.user_id,), fetch=True
-            )
-            if courses:
-                self.display_table(
-                    ["Title", "Credit Hours", "Instructor", "Semester"], courses
-                )
-            else:
-                ttk.Label(self.root, text="No enrolled courses found.").pack(pady=10)
-        elif self.role == "instructor":
-            query = """SELECT c.title, c.credit_hours, c.semester
-                       FROM Courses c
-                       WHERE c.instructor_id = %s"""
-            courses = execute_query(
-                self.conn, self.cursor, query, (self.user_id,), fetch=True
-            )
-            if courses:
-                self.display_table(["Title", "Credit Hours", "Semester"], courses)
-            else:
-                ttk.Label(self.root, text="No courses taught by you.").pack(pady=10)
-        elif self.role == "admin":
-            query = """SELECT c.course_id, c.title, c.credit_hours, u.name AS instructor, c.semester
-                       FROM Courses c
-                       LEFT JOIN Users u ON c.instructor_id = u.user_id"""
-            courses = execute_query(self.conn, self.cursor, query, fetch=True)
-            if courses:
-                self.display_table(
-                    ["Course ID", "Title", "Credit Hours", "Instructor", "Semester"],
-                    courses,
-                )
-            else:
-                ttk.Label(self.root, text="No courses in the system.").pack(pady=10)
-
-        back_button = ttk.Button(
-            self.root, text="Back to Menu", command=self.show_user_menu
-        )
-        back_button.pack(pady=10)
-
-    def view_grades(self):
-        self.clear_window()
-        title_label = ttk.Label(self.root, text="View Grades", font=("Arial", 14))
-        title_label.pack(pady=10)
-
-        if self.role == "student":
-            query = """SELECT c.title, r.quiz1, r.quiz2, r.midterm, r.final, r.total_marks, r.grade
-                       FROM Results r
-                       JOIN Courses c ON r.course_id = c.course_id
-                       WHERE r.user_id = %s"""
-            grades = execute_query(
-                self.conn, self.cursor, query, (self.user_id,), fetch=True
-            )
-            if grades:
-                self.display_table(
-                    [
-                        "Course",
-                        "Quiz 1",
-                        "Quiz 2",
-                        "Midterm",
-                        "Final",
-                        "Total Marks",
-                        "Grade",
-                    ],
-                    grades,
-                )
-            else:
-                ttk.Label(self.root, text="No grades available.").pack(pady=10)
-        elif self.role == "instructor":
-            ttk.Label(self.root, text="Select a course to view student grades:").pack(
+            ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(
                 pady=5
-            )
-            courses = execute_query(
-                self.conn,
-                self.cursor,
-                "SELECT course_id, title FROM Courses WHERE instructor_id = %s",
-                (self.user_id,),
-                fetch=True,
-            )
-            if courses:
-                course_var = tk.StringVar(self.root)
-                course_var.set(courses[0][1])  # Default value
-                course_dropdown = ttk.Combobox(
-                    self.root,
-                    textvariable=course_var,
-                    values=[c[1] for c in courses],
-                    state="readonly",
-                )
-                course_dropdown.pack(pady=5)
-                view_button = ttk.Button(
-                    self.root,
-                    text="View Grades for Selected Course",
-                    command=lambda: self.view_grades_for_course(course_var.get()),
-                )
-                view_button.pack(pady=5)
+            )  # Added bug report button
+
+    def report_bug(self):
+        bug_window = tk.Toplevel(self.root)
+        bug_window.title("Report a Bug")
+
+        ttk.Label(bug_window, text="Describe the bug:").pack(pady=5)
+        bug_text = tk.Text(bug_window, height=10, width=50)
+        bug_text.pack(pady=5)
+
+        def submit_bug():
+            description = bug_text.get("1.0", tk.END).strip()
+            if description:
+                query = """
+                    INSERT INTO bug (sender_id, Description, status, Time)
+                    VALUES (%s, %s, 'open', NOW())  -- status is 'open' by default, Time is NOW()
+                """
+                params = (self.user_id, description)
+                if execute_query(self.conn, self.cursor, query, params):
+                    messagebox.showinfo(
+                        "Bug Reported", "Thank you for reporting the bug!"
+                    )
+                    bug_window.destroy()
+                else:
+                    messagebox.showerror("Error", "Failed to report bug.")
             else:
-                ttk.Label(self.root, text="No courses taught by you.").pack(pady=10)
-        elif self.role == "admin":
-            query = """SELECT u.name AS student, c.title AS course, r.quiz1, r.quiz2, r.midterm, r.final, r.total_marks, r.grade
-                       FROM Results r
-                       JOIN Users u ON r.user_id = u.user_id
-                       JOIN Courses c ON r.course_id = c.course_id"""
-            all_grades = execute_query(self.conn, self.cursor, query, fetch=True)
-            if all_grades:
-                self.display_table(
-                    [
-                        "Student",
-                        "Course",
-                        "Quiz 1",
-                        "Quiz 2",
-                        "Midterm",
-                        "Final",
-                        "Total Marks",
-                        "Grade",
-                    ],
-                    all_grades,
-                )
-            else:
-                ttk.Label(self.root, text="No grades recorded.").pack(pady=10)
+                messagebox.showerror("Error", "Please describe the bug.")
 
-        back_button = ttk.Button(
-            self.root, text="Back to Menu", command=self.show_user_menu
-        )
-        back_button.pack(pady=10)
-
-    def view_grades_for_course(self, course_title):
-        grades_window = tk.Toplevel(self.root)
-        grades_window.title(f"Grades for {course_title}")
-        query = """SELECT u.name AS student, r.quiz1, r.quiz2, r.midterm, r.final, r.total_marks, r.grade
-                   FROM Results r
-                   JOIN Users u ON r.user_id = u.user_id
-                   JOIN Courses c ON r.course_id = c.course_id
-                   WHERE c.title = %s AND c.instructor_id = %s"""
-        course_data = execute_query(
-            self.conn,
-            self.cursor,
-            "SELECT course_id FROM Courses WHERE title = %s AND instructor_id = %s",
-            (course_title, self.user_id),
-            fetch=True,
-        )
-        if course_data:
-            course_id = course_data[0][0]
-            grades = execute_query(
-                self.conn, self.cursor, query, (course_title, self.user_id), fetch=True
-            )
-            if grades:
-                self.display_table(
-                    [
-                        "Student",
-                        "Quiz 1",
-                        "Quiz 2",
-                        "Midterm",
-                        "Final",
-                        "Total Marks",
-                        "Grade",
-                    ],
-                    grades,
-                    parent=grades_window,
-                )
-            else:
-                ttk.Label(
-                    grades_window, text="No grades recorded for this course."
-                ).pack(pady=10)
-
-            add_grade_button = ttk.Button(
-                grades_window,
-                text="Add/Update Grades",
-                command=lambda: self.add_update_grades(course_id, grades_window),
-            )
-            add_grade_button.pack(pady=10)
-        else:
-            ttk.Label(grades_window, text="Course not found.").pack(pady=10)
-
-    def add_update_grades(self, course_id, parent_window):
-        grade_window = tk.Toplevel(parent_window)
-        grade_window.title("Add/Update Grades")
-
-        # Get list of students in the course
-        student_query = """SELECT u.user_id, u.name FROM Users u
-                           JOIN Registrations r ON u.user_id = r.user_id
-                           WHERE r.course_id = %s AND r.status = 'enrolled'"""
-        students = execute_query(
-            self.conn, self.cursor, student_query, (course_id,), fetch=True
-        )
-
-        if not students:
-            ttk.Label(grade_window, text="No students enrolled in this course.").pack(
-                pady=10
-            )
-            return
-
-        # Create a dictionary to store entry widgets for each student
-        self.grade_entries = {}
-
-        for student_id, student_name in students:
-            ttk.Label(grade_window, text=f"Student: {student_name}").pack(pady=5)
-
-            # Fetch existing grades if available
-            existing_grade_query = "SELECT quiz1, quiz2, midterm, final FROM Results WHERE user_id = %s AND course_id = %s"
-            existing_grade = execute_query(
-                self.conn,
-                self.cursor,
-                existing_grade_query,
-                (student_id, course_id),
-                fetch=True,
-            )
-            quiz1_val, quiz2_val, midterm_val, final_val = 0, 0, 0, 0
-            if existing_grade:
-                quiz1_val, quiz2_val, midterm_val, final_val = existing_grade[0]
-
-            ttk.Label(grade_window, text="Quiz 1:").pack()
-            quiz1_entry = ttk.Entry(grade_window)
-            quiz1_entry.insert(0, quiz1_val)
-            quiz1_entry.pack(pady=2)
-
-            ttk.Label(grade_window, text="Quiz 2:").pack()
-            quiz2_entry = ttk.Entry(grade_window)
-            quiz2_entry.insert(0, quiz2_val)
-            quiz2_entry.pack(pady=2)
-
-            ttk.Label(grade_window, text="Midterm:").pack()
-            midterm_entry = ttk.Entry(grade_window)
-            midterm_entry.insert(0, midterm_val)
-            midterm_entry.pack(pady=2)
-
-            ttk.Label(grade_window, text="Final:").pack()
-            final_entry = ttk.Entry(grade_window)
-            final_entry.insert(0, final_val)
-            final_entry.pack(pady=2)
-
-            self.grade_entries[student_id] = {
-                "quiz1": quiz1_entry,
-                "quiz2": quiz2_entry,
-                "midterm": midterm_entry,
-                "final": final_entry,
-            }
-
-        save_button = ttk.Button(
-            grade_window,
-            text="Save Grades",
-            command=lambda: self.save_grades(course_id, grade_window),
-        )
-        save_button.pack(pady=10)
-
-    def save_grades(self, course_id, parent_window):
-        for student_id, entries in self.grade_entries.items():
-            quiz1 = float(entries["quiz1"].get()) if entries["quiz1"].get() else 0
-            quiz2 = float(entries["quiz2"].get()) if entries["quiz2"].get() else 0
-            midterm = float(entries["midterm"].get()) if entries["midterm"].get() else 0
-            final = float(entries["final"].get()) if entries["final"].get() else 0
-            total_marks = quiz1 + quiz2 + midterm + final
-            grade = self.calculate_grade(total_marks)
-
-            # Check if the record exists, if it does, update, otherwise insert.
-            check_query = (
-                "SELECT COUNT(*) FROM Results WHERE user_id = %s AND course_id = %s"
-            )
-            self.cursor.execute(check_query, (student_id, course_id))
-            exists = self.cursor.fetchone()[0]
-
-            if exists > 0:
-                update_query = """UPDATE Results SET quiz1 = %s, quiz2 = %s, midterm = %s, final = %s, total_marks = %s, grade = %s
-                                  WHERE user_id = %s AND course_id = %s"""
-                params = (
-                    quiz1,
-                    quiz2,
-                    midterm,
-                    final,
-                    total_marks,
-                    grade,
-                    student_id,
-                    course_id,
-                )
-                if not execute_query(self.conn, self.cursor, update_query, params):
-                    messagebox.showerror("Error", "Failed to update grades.")
-                    return
-            else:
-                insert_query = """INSERT INTO Results (user_id, course_id, quiz1, quiz2, midterm, final, total_marks, grade)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
-                params = (
-                    student_id,
-                    course_id,
-                    quiz1,
-                    quiz2,
-                    midterm,
-                    final,
-                    total_marks,
-                    grade,
-                )
-                if not execute_query(self.conn, self.cursor, insert_query, params):
-                    messagebox.showerror("Error", "Failed to insert grades.")
-                    return
-
-        messagebox.showinfo("Success", "Grades saved successfully.")
-        parent_window.destroy()
-
-    def calculate_grade(self, total_marks):
-        if total_marks >= 80:
-            return "A"
-        elif total_marks >= 70:
-            return "B"
-        elif total_marks >= 60:
-            return "C"
-        elif total_marks >= 50:
-            return "D"
-        else:
-            return "F"
-
-    def request_rechecking(self):
-        self.clear_window()
-        ttk.Label(self.root, text="Request Rechecking", font=("Arial", 14)).pack(
+        ttk.Button(bug_window, text="Submit Bug Report", command=submit_bug).pack(
             pady=10
         )
-
-        # Fetch student courses
-        query = """SELECT c.course_id, c.title FROM Courses c
-                   JOIN Registrations r ON c.course_id = r.course_id
-                   WHERE r.user_id = %s"""
-        courses = execute_query(
-            self.conn, self.cursor, query, (self.user_id,), fetch=True
-        )
-
-        if not courses:
-            ttk.Label(self.root, text="No courses found for rechecking.").pack(pady=10)
-            return
-
-        # Select course
-        ttk.Label(self.root, text="Select Course:").pack()
-        self.course_var = tk.StringVar(
-            self.root
-        )  # Make course_var an instance variable
-        course_dropdown = ttk.Combobox(
-            self.root,
-            textvariable=self.course_var,
-            values=[f"{c[0]} - {c[1]}" for c in courses],
-            state="readonly",
-        )
-        course_dropdown.pack(pady=5)
-
-        # Select exam type
-        ttk.Label(self.root, text="Select Exam Type:").pack()
-        self.exam_type_var = tk.StringVar(
-            self.root
-        )  # Make exam_type_var an instance variable
-        exam_type_dropdown = ttk.Combobox(
-            self.root,
-            textvariable=self.exam_type_var,
-            values=["quiz", "mid term", "final"],
-            state="readonly",
-        )
-        exam_type_dropdown.pack(pady=5)
-
-        # Reason
-        ttk.Label(self.root, text="Reason for Rechecking:").pack()
-        self.reason_text = tk.Text(
-            self.root, height=4, width=40
-        )  # Make reason_text an instance variable
-        self.reason_text.pack(pady=5)
-
-        # Submit button
-        ttk.Button(self.root, text="Submit Request", command=self.submit_request).pack(
-            pady=10
-        )
-        ttk.Button(self.root, text="Back", command=self.show_user_menu).pack(pady=5)
-
-    # Submit function
-    def submit_request(self):
-        try:
-            course_selection = self.course_var.get()
-            if not course_selection:
-                messagebox.showerror("Error", "Please select a course.")
-                return
-            course_id = int(course_selection.split(" - ")[0])
-
-            exam_type = self.exam_type_var.get()
-            reason = self.reason_text.get("1.0", tk.END).strip()
-
-            if not exam_type or not reason:
-                messagebox.showerror("Error", "All fields are required.")
-                return
-
-            insert_query = """
-                INSERT INTO rechecking (sender_id, course_id, reason, exam_type, status)
-                VALUES (%s, %s, %s, %s, 'pending')
-            """
-            params = (self.user_id, course_id, reason, exam_type)
-            success = execute_query(self.conn, self.cursor, insert_query, params)
-
-            if success:
-                messagebox.showinfo("Success", "Rechecking request submitted.")
-                self.show_user_menu()
-        except Exception as e:
-            messagebox.showerror("Error", f"Submission failed: {e}")
-
-    def view_attendance(self):
-        self.clear_window()
-        title_label = ttk.Label(self.root, text="View Attendance", font=("Arial", 14))
-        title_label.pack(pady=10)
-
-        if self.role == "student":
-            query = """SELECT c.title, a.date, a.status
-                       FROM Attendance a
-                       JOIN Courses c ON a.course_id = c.course_id
-                       WHERE a.user_id = %s"""
-            attendance = execute_query(
-                self.conn, self.cursor, query, (self.user_id,), fetch=True
-            )
-            if attendance:
-                self.display_table(["Course", "Date", "Status"], attendance)
-            else:
-                ttk.Label(self.root, text="No attendance records available.").pack(
-                    pady=10
-                )
-        elif self.role == "instructor":
-            ttk.Label(
-                self.root, text="Select a course to view student attendance:"
-            ).pack(pady=5)
-            courses = execute_query(
-                self.conn,
-                self.cursor,
-                "SELECT course_id, title FROM Courses WHERE instructor_id = %s",
-                (self.user_id,),
-                fetch=True,
-            )
-            if courses:
-                course_var = tk.StringVar(self.root)
-                course_var.set(courses[0][1])  # Default value
-                course_dropdown = ttk.Combobox(
-                    self.root,
-                    textvariable=course_var,
-                    values=[c[1] for c in courses],
-                    state="readonly",
-                )
-                course_dropdown.pack(pady=5)
-                view_button = ttk.Button(
-                    self.root,
-                    text="View Attendance for Selected Course",
-                    command=lambda: self.view_attendance_for_course(course_var.get()),
-                )
-                view_button.pack(pady=5)
-            else:
-                ttk.Label(self.root, text="No courses taught by you.").pack(pady=10)
-        elif self.role == "admin":
-            query = """SELECT u.name AS student, c.title AS course, r.quiz1, r.quiz2, r.midterm, r.final, r.total_marks, r.grade
-                       FROM Results r
-                       JOIN Users u ON r.user_id = u.user_id
-                       JOIN Courses c ON r.course_id = c.course_id"""
-            all_grades = execute_query(self.conn, self.cursor, query, fetch=True)
-        if all_grades:
-            self.display_table(
-                [
-                    "Student",
-                    "Course",
-                    "Quiz 1",
-                    "Quiz 2",
-                    "Midterm",
-                    "Final",
-                    "Total Marks",
-                    "Grade",
-                ],
-                all_grades,
-            )
-        else:
-            ttk.Label(self.root, text="No grades recorded.").pack(pady=10)
-
-        back_button = ttk.Button(
-            self.root, text="Back to Menu", command=self.show_user_menu
-        )
-        back_button.pack(pady=10)
-
-    def mark_attendance(self):
-        self.clear_window()
-        ttk.Label(self.root, text="Mark Attendance", font=("Arial", 14)).pack(pady=10)
-
-        # Fetch all courses taught by the instructor (assuming you have a way to identify this)
-        instructor_id = self.user_id  # Assuming self.user_id holds the instructor's ID
-        query_instructor_courses = """SELECT c.course_id, c.title FROM Courses c
-                                      JOIN InstructorCourses ic ON c.course_id = ic.course_id
-                                      WHERE ic.instructor_id = %s"""
-        instructor_courses = execute_query(
-            self.conn,
-            self.cursor,
-            query_instructor_courses,
-            (instructor_id,),
-            fetch=True,
-        )
-
-        if not instructor_courses:
-            ttk.Label(
-                self.root, text="No courses assigned to you for attendance."
-            ).pack(pady=10)
-            ttk.Button(self.root, text="Back", command=self.instructor_section).pack(
-                pady=5
-            )
-            return
-
-        ttk.Label(self.root, text="Select Course:").pack()
-        self.attendance_course_var = tk.StringVar(self.root)
-        course_values = [f"{c[0]} - {c[1]}" for c in instructor_courses]
-        self.attendance_course_dropdown = ttk.Combobox(
-            self.root,
-            textvariable=self.attendance_course_var,
-            values=course_values,
-            state="readonly",
-        )
-        self.attendance_course_dropdown.pack(pady=5)
-        self.attendance_course_dropdown.bind(
-            "<<ComboboxSelected>>", self._load_students_for_attendance
-        )
-
-        # Frame to hold the student list and attendance options
-        self.attendance_frame = ttk.Frame(self.root)
-        self.attendance_frame.pack(pady=10, padx=10, fill="both", expand=True)
-
-        self.attendance_canvas = tk.Canvas(self.attendance_frame)
-        self.attendance_canvas.pack(side="left", fill="both", expand=True)
-
-        self.attendance_scrollbar = ttk.Scrollbar(
-            self.attendance_frame,
-            orient="vertical",
-            command=self.attendance_canvas.yview,
-        )
-        self.attendance_scrollbar.pack(side="right", fill="y")
-
-        self.attendance_canvas.configure(yscrollcommand=self.attendance_scrollbar.set)
-        self.attendance_canvas.bind(
-            "<Configure>",
-            lambda e: self.attendance_canvas.configure(
-                scrollregion=self.attendance_canvas.bbox("all")
-            ),
-        )
-
-        self.attendance_inner_frame = ttk.Frame(self.attendance_canvas)
-        self.attendance_canvas.create_window(
-            (0, 0), window=self.attendance_inner_frame, anchor="nw"
-        )
-
-        self.attendance_data = {}  # To store attendance status for each student
-
-        ttk.Button(
-            self.root, text="Save Attendance", command=self._save_attendance
-        ).pack(pady=10)
-        ttk.Button(self.root, text="Back", command=self.instructor_section).pack(pady=5)
-
-    def _load_students_for_attendance(self, event=None):
-        selected_course = self.attendance_course_var.get()
-        if not selected_course:
-            return
-        course_id = int(selected_course.split(" - ")[0])
-
-        # Fetch students registered in the selected course
-        query_students = """SELECT u.user_id, u.username FROM Users u
-                            JOIN Registrations r ON u.user_id = r.user_id
-                            WHERE r.course_id = %s AND u.role = 'student'"""
-        students = execute_query(
-            self.conn, self.cursor, query_students, (course_id,), fetch=True
-        )
-
-        # Clear previous student list
-        for widget in self.attendance_inner_frame.winfo_children():
-            widget.destroy()
-        self.attendance_data = {}
-
-        if students:
-            for student_id, username in students:
-                student_frame = ttk.Frame(self.attendance_inner_frame)
-                student_frame.pack(pady=2, fill="x")
-
-                ttk.Label(student_frame, text=username, width=30, anchor="w").pack(
-                    side="left"
-                )
-
-                attendance_var = tk.StringVar(student_frame)
-                attendance_var.set("Present")  # Default value
-                attendance_options = ["Present", "Absent", "Late"]
-                attendance_dropdown = ttk.Combobox(
-                    student_frame,
-                    textvariable=attendance_var,
-                    values=attendance_options,
-                    state="readonly",
-                    width=10,
-                )
-                attendance_dropdown.pack(side="left", padx=5)
-                self.attendance_data[student_id] = attendance_var
-        else:
-            ttk.Label(
-                self.attendance_inner_frame,
-                text="No students registered in this course.",
-            ).pack(pady=5)
-
-        self.attendance_inner_frame.update_idletasks()
-        self.attendance_canvas.config(scrollregion=self.attendance_canvas.bbox("all"))
-
-    def _save_attendance(self):
-        selected_course = self.attendance_course_var.get()
-        if not selected_course:
-            messagebox.showerror("Error", "Please select a course to save attendance.")
-            return
-        course_id = int(selected_course.split(" - ")[0])
-
-        today = datetime.date.today()
-
-        for student_id, attendance_var in self.attendance_data.items():
-            status = attendance_var.get()
-            # You'll need an 'attendance' table in your database
-            insert_query = """
-                INSERT INTO attendance (course_id, student_id, date, status)
-                VALUES (%s, %s, %s, %s)
-                ON CONFLICT (course_id, student_id, date) DO UPDATE SET status = %s
-            """
-            params = (
-                course_id,
-                student_id,
-                today,
-                status,
-                status,
-            )  # For SQLite ON CONFLICT
-            # For MySQL/PostgreSQL, the ON CONFLICT syntax might be different
-            success = execute_query(self.conn, self.cursor, insert_query, params)
-            if not success:
-                messagebox.showerror(
-                    "Error", f"Failed to save attendance for student ID: {student_id}"
-                )
-                return
-
-        messagebox.showinfo(
-            "Success", "Attendance saved successfully for the selected course."
-        )
-
-    def manage_courses(self):
-        self.clear_window()
-        ttk.Label(
-            self.root, text="Manage Courses (Placeholder)", font=("Arial", 14)
-        ).pack(pady=10)
-        ttk.Label(
-            self.root, text="Functionality to manage courses will be implemented here."
-        ).pack(pady=5)
-        ttk.Button(self.root, text="Back", command=self.instructor_section).pack(
-            pady=10
-        )
-
-    def view_rechecking_requests(self):
-        self.clear_window()
-        ttk.Label(
-            self.root, text="View Rechecking Requests (Placeholder)", font=("Arial", 14)
-        ).pack(pady=10)
-        ttk.Label(
-            self.root,
-            text="Functionality to view and manage rechecking requests will be implemented here.",
-        ).pack(pady=5)
-        ttk.Button(self.root, text="Back", command=self.instructor_section).pack(
-            pady=10
-        )
-
-    def view_grades_for_course(self, course_title):
-        grades_window = tk.Toplevel(self.root)
-        grades_window.title(f"Grades for {course_title}")
-        query = """SELECT u.name AS student, r.quiz1, r.quiz2, r.midterm, r.final, r.total_marks, r.grade
-                   FROM Results r
-                   JOIN Users u ON r.user_id = u.user_id
-                   JOIN Courses c ON r.course_id = c.course_id
-                   WHERE c.title = %s AND c.instructor_id = %s"""
 
     def show_registration_form(self):
         self.clear_window()
-        title_label = ttk.Label(self.root, text="Register User", font=("Arial", 14))
+        title_label = ttk.Label(self.root, text="User Registration", font=("Arial", 14))
         title_label.pack(pady=20)
 
         name_label = ttk.Label(self.root, text="Name:")
@@ -1170,21 +522,29 @@ class LMSApp:
 
         email_label = ttk.Label(self.root, text="Email:")
         email_label.pack()
-        self.email_entry = ttk.Entry(self.root)
-        self.email_entry.pack(pady=5)
+        self.reg_email_entry = ttk.Entry(self.root)
+        self.reg_email_entry.pack(pady=5)
 
         password_label = ttk.Label(self.root, text="Password:")
         password_label.pack()
-        self.password_entry = ttk.Entry(self.root, show="*")
-        self.password_entry.pack(pady=5)
+        self.reg_password_entry = ttk.Entry(self.root, show="*")
+        self.reg_password_entry.pack(pady=5)
 
         role_label = ttk.Label(self.root, text="Role:")
         role_label.pack()
-        self.role_combobox = ttk.Combobox(
-            self.root, values=["student", "instructor", "admin"], state="readonly"
+        self.role_var = tk.StringVar(value="student")  # Default to student
+        student_radio = ttk.Radiobutton(
+            self.root, text="Student", variable=self.role_var, value="student"
         )
-        self.role_combobox.pack(pady=5)
-        self.role_combobox.set("student")  # Default role
+        instructor_radio = ttk.Radiobutton(
+            self.root, text="Instructor", variable=self.role_var, value="instructor"
+        )
+        admin_radio = ttk.Radiobutton(
+            self.root, text="Admin", variable=self.role_var, value="admin"
+        )
+        student_radio.pack(anchor=tk.W)
+        instructor_radio.pack(anchor=tk.W)
+        admin_radio.pack(anchor=tk.W)
 
         register_button = ttk.Button(
             self.root, text="Register", command=self.register_user
@@ -1194,13 +554,13 @@ class LMSApp:
         back_button = ttk.Button(
             self.root, text="Back to Menu", command=self.show_login_menu
         )
-        back_button.pack(pady=5)
+        back_button.pack(pady=10)
 
     def register_user(self):
         name = self.name_entry.get()
-        email = self.email_entry.get()
-        password = self.password_entry.get()
-        role = self.role_combobox.get()
+        email = self.reg_email_entry.get()
+        password = self.reg_password_entry.get()
+        role = self.role_var.get()
 
         if not name or not email or not password or not role:
             messagebox.showerror("Registration Error", "All fields are required.")
@@ -1236,6 +596,678 @@ class LMSApp:
             self.conn.rollback()
             messagebox.showerror("Registration Error", f"Failed to register user: {e}")
             return
+
+    def show_grading_options(self):
+        grading_window = tk.Toplevel(self.root)
+        grading_window.title("Apply Grading")
+
+        ttk.Label(
+            grading_window, text="Choose Grading Method:", font=("Arial", 12)
+        ).pack(pady=10)
+
+        ttk.Button(
+            grading_window,
+            text="Absolute Grading",
+            command=lambda: [
+                absolute_grading(self.conn, self.cursor),
+                grading_window.destroy(),
+            ],
+        ).pack(pady=5)
+        ttk.Button(
+            grading_window,
+            text="Relative Grading",
+            command=lambda: [
+                relative_grading(self.conn, self.cursor),
+                grading_window.destroy(),
+            ],
+        ).pack(pady=5)
+
+    def view_courses(self):
+        self.clear_window()
+        ttk.Label(self.root, text="View Courses", font=("Arial", 16)).pack(pady=20)
+        query = """
+            SELECT c.course_id, c.title, c.credit_hours, u.name as instructor_name
+            FROM Courses c
+            JOIN Users u ON c.instructor_id = u.user_id
+        """
+        courses = execute_query(self.conn, self.cursor, query, fetch=True)
+        if courses:
+            for course in courses:
+                course_info = f"Course ID: {course[0]}, Title: {course[1]}, Credits: {course[2]}, Instructor: {course[3]}"
+                ttk.Label(self.root, text=course_info).pack(pady=2)
+        else:
+            ttk.Label(self.root, text="No courses found.").pack(pady=10)
+        ttk.Button(self.root, text="Back to Menu", command=self.show_user_menu).pack(
+            pady=10
+        )
+
+    def view_grades(self):
+        self.clear_window()
+        ttk.Label(self.root, text="View Grades", font=("Arial", 16)).pack(pady=20)
+        query = """
+            SELECT c.title, r.quiz1, r.quiz2, r.midterm, r.final, r.total_marks, r.grade
+            FROM Results r
+            JOIN Courses c ON r.course_id = c.course_id
+            WHERE r.user_id = %s
+        """
+        grades = execute_query(
+            self.conn, self.cursor, query, (self.user_id,), fetch=True
+        )
+        if grades:
+            for grade in grades:
+                grade_info = f"Course: {grade[0]}, Quiz 1: {grade[1]}, Quiz 2: {grade[2]}, Midterm: {grade[3]}, Final: {grade[4]}, Total Marks: {grade[5]}, Grade: {grade[6]}"
+                ttk.Label(self.root, text=grade_info).pack(pady=2)
+        else:
+            ttk.Label(self.root, text="No grades found.").pack(pady=10)
+        ttk.Button(self.root, text="Back to Menu", command=self.show_user_menu).pack(
+            pady=10
+        )
+
+    def view_attendance(self):
+        self.clear_window()
+        ttk.Label(self.root, text="View Attendance", font=("Arial", 16)).pack(pady=20)
+        query = """
+            SELECT c.title, a.date, a.status
+            FROM Attendance a
+            JOIN Courses c ON a.course_id = c.course_id
+            WHERE a.user_id = %s
+        """
+        attendance_records = execute_query(
+            self.conn, self.cursor, query, (self.user_id,), fetch=True
+        )
+        if attendance_records:
+            for record in attendance_records:
+                attendance_info = (
+                    f"Course: {record[0]}, Date: {record[1]}, Status: {record[2]}"
+                )
+                ttk.Label(self.root, text=attendance_info).pack(pady=2)
+        else:
+            ttk.Label(self.root, text="No attendance records found.").pack(pady=10)
+        ttk.Button(self.root, text="Back to Menu", command=self.show_user_menu).pack(
+            pady=10
+        )
+
+    def request_rechecking(self):
+        self.clear_window()
+        ttk.Label(self.root, text="Request Rechecking", font=("Arial", 16)).pack(
+            pady=20
+        )
+
+        course_label = ttk.Label(self.root, text="Course:")
+        course_label.pack()
+        self.recheck_course_var = tk.StringVar()
+        self.recheck_course_combobox = ttk.Combobox(
+            self.root, textvariable=self.recheck_course_var
+        )
+        self.populate_course_combobox()  # Populate with courses
+        self.recheck_course_combobox.pack(pady=5)
+
+        exam_type_label = ttk.Label(self.root, text="Exam Type:")
+        exam_type_label.pack()
+        self.recheck_exam_type_var = tk.StringVar()
+        self.recheck_exam_type_combobox = ttk.Combobox(
+            self.root,
+            textvariable=self.recheck_exam_type_var,
+            values=["quiz", "mid term", "final"],
+        )
+        self.recheck_exam_type_combobox.pack(pady=5)
+
+        reason_label = ttk.Label(self.root, text="Reason:")
+        reason_label.pack()
+        self.recheck_reason_text = tk.Text(self.root, height=5, width=40)
+        self.recheck_reason_text.pack(pady=5)
+
+        def submit_recheck_request():
+            course_id = self.recheck_course_var.get()
+            exam_type = self.recheck_exam_type_var.get()
+            reason = self.recheck_reason_text.get("1.0", tk.END).strip()
+            if course_id and exam_type and reason:
+                query = """
+                    INSERT INTO rechecking (sender_id, course_id, reason, exam_type, status)
+                    VALUES (%s, %s, %s, %s, 'pending')
+                """
+                params = (self.user_id, course_id, reason, exam_type)
+                if execute_query(self.conn, self.cursor, query, params):
+                    messagebox.showinfo(
+                        "Rechecking Request", "Your request has been submitted."
+                    )
+                    self.show_user_menu()
+                else:
+                    messagebox.showerror(
+                        "Rechecking Request", "Failed to submit request."
+                    )
+            else:
+                messagebox.showerror("Rechecking Request", "Please fill in all fields.")
+
+        submit_button = ttk.Button(
+            self.root, text="Submit Request", command=submit_recheck_request
+        )
+        submit_button.pack(pady=10)
+        back_button = ttk.Button(
+            self.root, text="Back to Menu", command=self.show_user_menu
+        )
+        back_button.pack(pady=10)
+
+    def populate_course_combobox(self):
+        query = "SELECT course_id, title FROM Courses"  # Adjust query as needed
+        courses = execute_query(self.conn, self.cursor, query, fetch=True)
+        if courses:
+            course_list = [
+                f"{course[1]} ({course[0]})" for course in courses
+            ]  # Format: "Course Title (Course ID)"
+            self.recheck_course_combobox["values"] = course_list
+        else:
+            self.recheck_course_combobox["values"] = []
+
+    def manage_users(self):
+        self.clear_window()
+        ttk.Label(self.root, text="Manage Users", font=("Arial", 16)).pack(pady=20)
+        # Add functionality to view, add, edit, and delete users
+        ttk.Button(self.root, text="View Users", command=self.view_users).pack(pady=5)
+        ttk.Button(self.root, text="Add User", command=self.add_user).pack(pady=5)
+        ttk.Button(self.root, text="Edit User", command=self.edit_user).pack(pady=5)
+        ttk.Button(self.root, text="Delete User", command=self.delete_user).pack(pady=5)
+        ttk.Button(self.root, text="Back to Menu", command=self.show_user_menu).pack(
+            pady=10
+        )
+
+    def view_users(self):
+        self.clear_window()
+        ttk.Label(self.root, text="View Users", font=("Arial", 16)).pack(pady=20)
+        query = "SELECT user_id, name, email, role FROM Users"
+        users = execute_query(self.conn, self.cursor, query, fetch=True)
+        if users:
+            for user in users:
+                user_info = (
+                    f"ID: {user[0]}, Name: {user[1]}, Email: {user[2]}, Role: {user[3]}"
+                )
+                ttk.Label(self.root, text=user_info).pack(pady=2)
+        else:
+            ttk.Label(self.root, text="No users found.").pack(pady=10)
+        ttk.Button(
+            self.root, text="Back to Manage Users", command=self.manage_users
+        ).pack(pady=10)
+
+    def add_user(self):
+        self.clear_window()
+        ttk.Label(self.root, text="Add User", font=("Arial", 16)).pack(pady=20)
+
+        name_label = ttk.Label(self.root, text="Name:")
+        name_label.pack()
+        self.add_name_entry = ttk.Entry(self.root)
+        self.add_name_entry.pack(pady=5)
+
+        email_label = ttk.Label(self.root, text="Email:")
+        email_label.pack()
+        self.add_email_entry = ttk.Entry(self.root)
+        self.add_email_entry.pack(pady=5)
+
+        password_label = ttk.Label(self.root, text="Password:")
+        password_label.pack()
+        self.add_password_entry = ttk.Entry(self.root, show="*")
+        self.add_password_entry.pack(pady=5)
+
+        role_label = ttk.Label(self.root, text="Role:")
+        role_label.pack()
+        self.add_role_var = tk.StringVar(value="student")
+        student_radio = ttk.Radiobutton(
+            self.root, text="Student", variable=self.add_role_var, value="student"
+        )
+        instructor_radio = ttk.Radiobutton(
+            self.root, text="Instructor", variable=self.add_role_var, value="instructor"
+        )
+        admin_radio = ttk.Radiobutton(
+            self.root, text="Admin", variable=self.add_role_var, value="admin"
+        )
+        student_radio.pack(anchor=tk.W)
+        instructor_radio.pack(anchor=tk.W)
+        admin_radio.pack(anchor=tk.W)
+
+        def add_user_to_db():
+            name = self.add_name_entry.get()
+            email = self.add_email_entry.get()
+            password = self.add_password_entry.get()
+            role = self.add_role_var.get()
+            if name and email and password and role:
+                if "@" not in email:
+                    messagebox.showerror("Add User Error", "Invalid email format.")
+                    return
+                query = "INSERT INTO Users (name, email, password, role) VALUES (%s, %s, %s, %s)"
+                params = (name, email, password, role)
+                if execute_query(self.conn, self.cursor, query, params):
+                    messagebox.showinfo("Add User", "User added successfully.")
+                    self.manage_users()
+                else:
+                    messagebox.showerror("Add User Error", "Failed to add user.")
+            else:
+                messagebox.showerror("Add User Error", "All fields are required.")
+
+        add_button = ttk.Button(self.root, text="Add User", command=add_user_to_db)
+        add_button.pack(pady=10)
+        back_button = ttk.Button(
+            self.root, text="Back to Manage Users", command=self.manage_users
+        )
+        back_button.pack(pady=10)
+
+    def edit_user(self):
+        self.clear_window()
+        ttk.Label(self.root, text="Edit User", font=("Arial", 16)).pack(pady=20)
+
+        user_id_label = ttk.Label(self.root, text="User ID to Edit:")
+        user_id_label.pack()
+        self.edit_user_id_entry = ttk.Entry(self.root)
+        self.edit_user_id_entry.pack(pady=5)
+
+        name_label = ttk.Label(self.root, text="New Name:")
+        name_label.pack()
+        self.edit_name_entry = ttk.Entry(self.root)
+        self.edit_name_entry.pack(pady=5)
+
+        email_label = ttk.Label(self.root, text="New Email:")
+        email_label.pack()
+        self.edit_email_entry = ttk.Entry(self.root)
+        self.edit_email_entry.pack(pady=5)
+
+        password_label = ttk.Label(self.root, text="New Password:")
+        password_label.pack()
+        self.edit_password_entry = ttk.Entry(self.root, show="*")
+        self.edit_password_entry.pack(pady=5)
+
+        role_label = ttk.Label(self.root, text="New Role:")
+        role_label.pack()
+        self.edit_role_var = tk.StringVar()
+        student_radio = ttk.Radiobutton(
+            self.root, text="Student", variable=self.edit_role_var, value="student"
+        )
+        instructor_radio = ttk.Radiobutton(
+            self.root,
+            text="Instructor",
+            variable=self.edit_role_var,
+            value="instructor",
+        )
+        admin_radio = ttk.Radiobutton(
+            self.root, text="Admin", variable=self.edit_role_var, value="admin"
+        )
+        student_radio.pack(anchor=tk.W)
+        instructor_radio.pack(anchor=tk.W)
+        admin_radio.pack(anchor=tk.W)
+
+        def update_user_in_db():
+            user_id = self.edit_user_id_entry.get()
+            name = self.edit_name_entry.get()
+            email = self.edit_email_entry.get()
+            password = self.edit_password_entry.get()
+            role = self.edit_role_var.get()
+
+            if user_id:
+                update_fields = {}
+                update_values = []
+                if name:
+                    update_fields["name"] = name
+                    update_values.append(name)
+                if email:
+                    if "@" not in email:
+                        messagebox.showerror("Edit User Error", "Invalid email format.")
+                        return
+                    update_fields["email"] = email
+                    update_values.append(email)
+                if password:
+                    update_fields["password"] = password
+                    update_values.append(password)
+                if role:
+                    update_fields["role"] = role
+                    update_values.append(role)
+
+                if update_fields:
+                    columns = list(update_fields.keys())
+                    values = update_values
+                    if update_record(
+                        self.conn,
+                        self.cursor,
+                        "Users",
+                        columns,
+                        values,
+                        "user_id",
+                        user_id,
+                    ):
+                        messagebox.showinfo("Edit User", "User updated successfully.")
+                        self.manage_users()
+                    else:
+                        messagebox.showerror(
+                            "Edit User Error", "Failed to update user."
+                        )
+                else:
+                    messagebox.showinfo("Edit User", "No fields to update.")
+            else:
+                messagebox.showerror("Edit User Error", "User ID is required.")
+
+        update_button = ttk.Button(
+            self.root, text="Update User", command=update_user_in_db
+        )
+        update_button.pack(pady=10)
+        back_button = ttk.Button(
+            self.root, text="Back to Manage Users", command=self.manage_users
+        )
+        back_button.pack(pady=10)
+
+    def delete_user(self):
+        self.clear_window()
+        ttk.Label(self.root, text="Delete User", font=("Arial", 16)).pack(pady=20)
+
+        user_id_label = ttk.Label(self.root, text="User ID to Delete:")
+        user_id_label.pack()
+        self.delete_user_id_entry = ttk.Entry(self.root)
+        self.delete_user_id_entry.pack(pady=5)
+
+        def delete_user_from_db():
+            user_id = self.delete_user_id_entry.get()
+            if user_id:
+                if delete_record(self.conn, self.cursor, "Users", "user_id", user_id):
+                    messagebox.showinfo("Delete User", "User deleted successfully.")
+                    self.manage_users()
+                else:
+                    messagebox.showerror("Delete User Error", "Failed to delete user.")
+            else:
+                messagebox.showerror("Delete User Error", "User ID is required.")
+
+        delete_button = ttk.Button(
+            self.root, text="Delete User", command=delete_user_from_db
+        )
+        delete_button.pack(pady=10)
+        back_button = ttk.Button(
+            self.root, text="Back to Manage Users", command=self.manage_users
+        )
+        back_button.pack(pady=10)
+
+    def manage_courses(self):
+        self.clear_window()
+        ttk.Label(self.root, text="Manage Courses", font=("Arial", 16)).pack(pady=20)
+        # Add functionality to view, add, edit, and delete courses
+        ttk.Button(self.root, text="View Courses", command=self.view_all_courses).pack(
+            pady=5
+        )
+        ttk.Button(self.root, text="Add Course", command=self.add_course).pack(pady=5)
+        ttk.Button(self.root, text="Edit Course", command=self.edit_course).pack(pady=5)
+        ttk.Button(self.root, text="Delete Course", command=self.delete_course).pack(
+            pady=5
+        )
+        ttk.Button(self.root, text="Back to Menu", command=self.show_user_menu).pack(
+            pady=10
+        )
+
+    def view_all_courses(self):
+        self.clear_window()
+        ttk.Label(self.root, text="View All Courses", font=("Arial", 16)).pack(pady=20)
+        query = """
+            SELECT c.course_id, c.title, c.credit_hours, u.name as instructor_name, c.semester
+            FROM Courses c
+            JOIN Users u ON c.instructor_id = u.user_id
+        """
+        courses = execute_query(self.conn, self.cursor, query, fetch=True)
+        if courses:
+            for course in courses:
+                course_info = f"ID: {course[0]}, Title: {course[1]}, Credits: {course[2]}, Instructor: {course[3]}, Semester: {course[4]}"
+                ttk.Label(self.root, text=course_info).pack(pady=2)
+        else:
+            ttk.Label(self.root, text="No courses found.").pack(pady=10)
+        ttk.Button(
+            self.root, text="Back to Manage Courses", command=self.manage_courses
+        ).pack(pady=10)
+
+    def add_course(self):
+        self.clear_window()
+        ttk.Label(self.root, text="Add Course", font=("Arial", 16)).pack(pady=20)
+
+        title_label = ttk.Label(self.root, text="Title:")
+        title_label.pack()
+        self.add_course_title_entry = ttk.Entry(self.root)
+        self.add_course_title_entry.pack(pady=5)
+
+        credits_label = ttk.Label(self.root, text="Credit Hours:")
+        credits_label.pack()
+        self.add_course_credits_entry = ttk.Entry(self.root)
+        self.add_course_credits_entry.pack(pady=5)
+
+        instructor_label = ttk.Label(self.root, text="Instructor:")
+        instructor_label.pack()
+        self.add_course_instructor_var = tk.StringVar()
+        self.add_course_instructor_combobox = ttk.Combobox(
+            self.root, textvariable=self.add_course_instructor_var
+        )
+        self.populate_instructor_combobox()
+        self.add_course_instructor_combobox.pack(pady=5)
+
+        semester_label = ttk.Label(self.root, text="Semester:")
+        semester_label.pack()
+        self.add_course_semester_entry = ttk.Entry(self.root)
+        self.add_course_semester_entry.pack(pady=5)
+
+        def add_course_to_db():
+            title = self.add_course_title_entry.get()
+            credits = self.add_course_credits_entry.get()
+            instructor_name = self.add_course_instructor_var.get()
+            semester = self.add_course_semester_entry.get()
+
+            if title and credits and instructor_name and semester:
+                try:
+                    credits = int(credits)
+                    if not (1 <= credits <= 4):
+                        messagebox.showerror(
+                            "Add Course Error", "Credit hours must be between 1 and 4."
+                        )
+                        return
+                    query = "SELECT user_id FROM Users WHERE name = %s"
+                    self.cursor.execute(query, (instructor_name,))
+                    instructor_id_result = self.cursor.fetchone()
+                    if instructor_id_result:
+                        instructor_id = instructor_id_result[0]
+                        query = "INSERT INTO Courses (title, credit_hours, instructor_id, semester) VALUES (%s, %s, %s, %s)"
+                        params = (title, credits, instructor_id, semester)
+                        if execute_query(self.conn, self.cursor, query, params):
+                            messagebox.showinfo(
+                                "Add Course", "Course added successfully."
+                            )
+                            self.manage_courses()
+                        else:
+                            messagebox.showerror(
+                                "Add Course Error", "Failed to add course."
+                            )
+                    else:
+                        messagebox.showerror(
+                            "Add Course Error",
+                            "Instructor not found. Please select a valid instructor.",
+                        )
+                except ValueError:
+                    messagebox.showerror(
+                        "Add Course Error", "Credit hours must be a number."
+                    )
+            else:
+                messagebox.showerror("Add Course Error", "All fields are required.")
+
+        add_button = ttk.Button(self.root, text="Add Course", command=add_course_to_db)
+        add_button.pack(pady=10)
+        back_button = ttk.Button(
+            self.root, text="Back to Manage Courses", command=self.manage_courses
+        )
+        back_button.pack(pady=10)
+
+    def populate_instructor_combobox(self):
+        query = "SELECT name FROM Users WHERE role = 'instructor'"
+        instructors = execute_query(self.conn, self.cursor, query, fetch=True)
+        if instructors:
+            instructor_names = [instructor[0] for instructor in instructors]
+            self.add_course_instructor_combobox["values"] = instructor_names
+        else:
+            self.add_course_instructor_combobox["values"] = []
+
+    def edit_course(self):
+        self.clear_window()
+        ttk.Label(self.root, text="Edit Course", font=("Arial", 16)).pack(pady=20)
+
+        course_id_label = ttk.Label(self.root, text="Course ID to Edit:")
+        course_id_label.pack()
+        self.edit_course_id_entry = ttk.Entry(self.root)
+        self.edit_course_id_entry.pack(pady=5)
+
+        title_label = ttk.Label(self.root, text="New Title:")
+        title_label.pack()
+        self.edit_course_title_entry = ttk.Entry(self.root)
+        self.edit_course_title_entry.pack(pady=5)
+
+        credits_label = ttk.Label(self.root, text="New Credit Hours:")
+        credits_label.pack()
+        self.edit_course_credits_entry = ttk.Entry(self.root)
+        self.edit_course_credits_entry.pack(pady=5)
+
+        instructor_label = ttk.Label(self.root, text="New Instructor:")
+        instructor_label.pack()
+        self.edit_course_instructor_var = tk.StringVar()
+        self.edit_course_instructor_combobox = ttk.Combobox(
+            self.root, textvariable=self.edit_course_instructor_var
+        )
+        self.populate_instructor_combobox()
+        self.edit_course_instructor_combobox.pack(pady=5)
+
+        semester_label = ttk.Label(self.root, text="New Semester:")
+        semester_label.pack()
+        self.edit_course_semester_entry = ttk.Entry(self.root)
+        self.edit_course_semester_entry.pack(pady=5)
+
+        def update_course_in_db():
+            course_id = self.edit_course_id_entry.get()
+            title = self.edit_course_title_entry.get()
+            credits = self.edit_course_credits_entry.get()
+            instructor_name = self.edit_course_instructor_var.get()
+            semester = self.edit_course_semester_entry.get()
+
+            if course_id:
+                update_fields = {}
+                update_values = []
+                if title:
+                    update_fields["title"] = title
+                    update_values.append(title)
+                if credits:
+                    try:
+                        credits = int(credits)
+                        if not (1 <= credits <= 4):
+                            messagebox.showerror(
+                                "Edit Course Error",
+                                "Credit hours must be between 1 and 4.",
+                            )
+                            return
+                        update_fields["credit_hours"] = credits
+                        update_values.append(credits)
+                    except ValueError:
+                        messagebox.showerror(
+                            "Edit Course Error", "Credit hours must be a number."
+                        )
+                        return
+                if instructor_name:
+                    query = "SELECT user_id FROM Users WHERE name = %s"
+                    self.cursor.execute(query, (instructor_name,))
+                    instructor_id_result = self.cursor.fetchone()
+                    if instructor_id_result:
+                        instructor_id = instructor_id_result[0]
+                        update_fields["instructor_id"] = instructor_id
+                        update_values.append(instructor_id)
+                    else:
+                        messagebox.showerror(
+                            "Edit Course Error",
+                            "Instructor not found. Please select a valid instructor.",
+                        )
+                        return
+                if semester:
+                    update_fields["semester"] = semester
+                    update_values.append(semester)
+
+                if update_fields:
+                    columns = list(update_fields.keys())
+                    values = update_values
+                    if update_record(
+                        self.conn,
+                        self.cursor,
+                        "Courses",
+                        columns,
+                        values,
+                        "course_id",
+                        course_id,
+                    ):
+                        messagebox.showinfo(
+                            "Edit Course", "Course updated successfully."
+                        )
+                        self.manage_courses()
+                    else:
+                        messagebox.showerror(
+                            "Edit Course Error", "Failed to update course."
+                        )
+                else:
+                    messagebox.showinfo("Edit Course", "No fields to update.")
+            else:
+                messagebox.showerror("Edit Course Error", "Course ID is required.")
+
+        update_button = ttk.Button(
+            self.root, text="Update Course", command=update_course_in_db
+        )
+        update_button.pack(pady=10)
+        back_button = ttk.Button(
+            self.root, text="Back to Manage Courses", command=self.manage_courses
+        )
+        back_button.pack(pady=10)
+
+    def delete_course(self):
+        self.clear_window()
+        ttk.Label(self.root, text="Delete Course", font=("Arial", 16)).pack(pady=20)
+
+        course_id_label = ttk.Label(self.root, text="Course ID to Delete:")
+        course_id_label.pack()
+        self.delete_course_id_entry = ttk.Entry(self.root)
+        self.delete_course_id_entry.pack(pady=5)
+
+        def delete_course_from_db():
+            course_id = self.delete_course_id_entry.get()
+            if course_id:
+                if delete_record(
+                    self.conn, self.cursor, "Courses", "course_id", course_id
+                ):
+                    messagebox.showinfo("Delete Course", "Course deleted successfully.")
+                    self.manage_courses()
+                else:
+                    messagebox.showerror(
+                        "Delete Course Error", "Failed to delete course."
+                    )
+            else:
+                messagebox.showerror("Delete Course Error", "Course ID is required.")
+
+        delete_button = ttk.Button(
+            self.root, text="Delete Course", command=delete_course_from_db
+        )
+        delete_button.pack(pady=10)
+        back_button = ttk.Button(
+            self.root, text="Back to Manage Courses", command=self.manage_courses
+        )
+        back_button.pack(pady=10)
+
+    def view_rechecking_requests(self):
+        self.clear_window()
+        ttk.Label(self.root, text="View Rechecking Requests", font=("Arial", 16)).pack(
+            pady=20
+        )
+        query = """
+            SELECT r.recheck_id, u.name, c.title, r.exam_type, r.reason, r.status, r.created_at
+            FROM rechecking r
+            JOIN Users u ON r.sender_id = u.user_id
+            JOIN Courses c ON r.course_id = c.course_id
+        """
+        requests = execute_query(self.conn, self.cursor, query, fetch=True)
+        if requests:
+            for request in requests:
+                request_info = f"ID: {request[0]}, Student: {request[1]}, Course: {request[2]}, Exam Type: {request[3]}, Reason: {request[4]}, Status: {request[5]}, Requested At: {request[6]}"
+                ttk.Label(self.root, text=request_info).pack(pady=2)
+        else:
+            ttk.Label(self.root, text="No rechecking requests found.").pack(pady=10)
+        ttk.Button(self.root, text="Back to Menu", command=self.show_user_menu).pack(
+            pady=10
+        )
 
 
 # Starting the GUI Application
