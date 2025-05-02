@@ -443,8 +443,10 @@ class LMSApp:
             ).pack(pady=5)
             ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(
                 pady=5
-            )  # Added bug report button
-
+            )
+            ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(
+                pady=10
+            )
         elif self.role == "admin":
             menu_label = ttk.Label(self.root, text="Admin Section", font=("Arial", 16))
             menu_label.pack(pady=10)
