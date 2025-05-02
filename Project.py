@@ -501,26 +501,6 @@ class LMSApp:
                 ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(
                 pady=10
                 )
-                
-        elif self.role == "admin":
-            menu_label = ttk.Label(self.root, text="Admin Section", font=("Arial", 16))
-            menu_label.pack(pady=20)
-
-            ttk.Button(self.root, text="Manage Users", command=self.manage_users).pack(
-                pady=5
-            )
-
-            ttk.Button(
-                self.root, text="Manage Courses", command=self.manage_courses
-            ).pack(pady=5)
-
-            ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(
-                pady=5
-            )
-
-            ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(
-                pady=10
-            )
 
     def report_bug(self):
         bug_window = tk.Toplevel(self.root)
@@ -1132,14 +1112,14 @@ class LMSApp:
         )
         back_button.pack(pady=10)
 
-    def populate_instructor_combobox(self):
+    def populate_instructor_combobox(self, combobox):
         query = "SELECT user_id, name FROM Users WHERE role = 'instructor'"
         instructors = execute_query(self.conn, self.cursor, query, fetch=True)
         if instructors:
             self.instructor_map = {
                 f"{name} (ID: {uid})": uid for uid, name in instructors
             }
-            self.edit_course_instructor_combobox["values"] = list(
+            combobox["values"] = list(
                 self.instructor_map.keys()
             )
         else:
@@ -1171,7 +1151,7 @@ class LMSApp:
         self.edit_course_instructor_combobox = ttk.Combobox(
             self.root, textvariable=self.edit_course_instructor_var
         )
-        self.populate_instructor_combobox()
+        self.populate_instructor_combobox(self.edit_course_instructor_combobox)
         self.edit_course_instructor_combobox["state"] = (
             "normal"  # Ensure combobox is editable
         )
