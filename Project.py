@@ -359,7 +359,13 @@ class LMSApp:
             self.root, text="Login as Admin", command=self.login_admin
         )
         login_admin_button.pack(pady=10)
-
+        
+        
+        login_instructor_button = ttk.Button(
+            self.root, text="Login as Instructor", command=self.login_instructor
+        )
+        login_instructor_button.pack(pady=10)
+        
         register_user_button = ttk.Button(
             self.root, text="Register", command=self.show_registration_form
         )
@@ -373,6 +379,9 @@ class LMSApp:
 
     def login_admin(self):
         self.show_login_form("admin")
+
+    def login_instructor(self):
+        self.show_login_form("instructor")
 
     def show_login_form(self, role):
         self.clear_window()
@@ -417,13 +426,16 @@ class LMSApp:
 
         if user_data:
             self.user_id, self.user_name, self.role = user_data
+            if self.role not in ["student", "admin", "instructor"]:
+                messagebox.showerror("Login Error", "Invalid role assigned to user.")
+                return
             messagebox.showinfo("Login Successful", f"Welcome, {self.user_name}!")
             self.show_user_menu()
         else:
+            self.role = None  # Ensure self.role is set to None if login fails
             messagebox.showerror("Login Error", "Invalid email or password.")
 
     def show_user_menu(self):
-        print(f"Current role: {self.role}")
         self.clear_window()
 
         if self.role == "student":
@@ -447,17 +459,9 @@ class LMSApp:
             ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(
                 pady=10
             )
-        elif self.role == "admin":
+        elif self.role == "instructor":
             menu_label = ttk.Label(self.root, text="Admin Section", font=("Arial", 16))
-            menu_label.pack(pady=10)
-
-            ttk.Button(self.root, text="Manage Users", command=self.manage_users).pack(
-                pady=5
-            )
-
-            ttk.Button(
-                self.root, text="Manage Courses", command=self.manage_courses
-            ).pack(pady=5)
+            menu_label.pack(pady=20)
 
             ttk.Button(
                 self.root, text="Apply Grading", command=self.show_grading_options
@@ -475,12 +479,32 @@ class LMSApp:
                 command=lambda: plot_percentage_distribution(self.conn, self.cursor),
             ).pack(pady=5)
 
+            ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(
+                pady=5
+            )
+
             ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(
                 pady=10
             )
+        else:
+            menu_label = ttk.Label(self.root, text="Admin Section", font=("Arial", 16))
+            menu_label.pack(pady=20)
+
+            ttk.Button(self.root, text="Manage Users", command=self.manage_users).pack(
+                pady=5
+            )
+
+            ttk.Button(
+                self.root, text="Manage Courses", command=self.manage_courses
+            ).pack(pady=5)
+
             ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(
                 pady=5
-            )  # Added bug report button
+            )
+
+            ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(
+                pady=10
+            )
 
     def report_bug(self):
         bug_window = tk.Toplevel(self.root)
