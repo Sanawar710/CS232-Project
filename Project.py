@@ -203,7 +203,7 @@ class LMSApp:
         execute_query(self.conn, self.cursor, admin_script)
 
         courses_script = """CREATE TABLE IF NOT EXISTS Courses (
-            course_id SERIAL PRIMARY KEY,
+            course_id TEXT PRIMARY KEY NOT NULL,
             title VARCHAR(100) NOT NULL,
             credit_hours INT NOT NULL CHECK (credit_hours BETWEEN 1 AND 4),
             instructor_id INT,
@@ -213,8 +213,8 @@ class LMSApp:
         execute_query(self.conn, self.cursor, courses_script)
 
         course_prerequisite_script = """CREATE TABLE IF NOT EXISTS CoursePrerequisites (
-            course_id INT,
-            prerequisite_id INT,
+            course_id TEXT NOT NULL,
+            prerequisite_id INT NOT NULL,
             PRIMARY KEY (course_id, prerequisite_id),
             FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE,
             FOREIGN KEY (prerequisite_id) REFERENCES Courses(course_id) ON DELETE CASCADE
@@ -224,7 +224,7 @@ class LMSApp:
         registration_script = """CREATE TABLE IF NOT EXISTS Registrations (
             registration_id SERIAL PRIMARY KEY,
             user_id INT NOT NULL,
-            course_id INT NOT NULL,
+            course_id TEXT NOT NULL,
             status VARCHAR(20) DEFAULT 'enrolled',
             semester VARCHAR(20),
             FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
@@ -239,7 +239,7 @@ class LMSApp:
         result_script = """CREATE TABLE IF NOT EXISTS Results (
             result_id SERIAL PRIMARY KEY,
             user_id INT NOT NULL,
-            course_id INT NOT NULL,
+            course_id TEXT NOT NULL,
             quiz1 FLOAT DEFAULT 0,
             quiz2 FLOAT DEFAULT 0,
             midterm FLOAT DEFAULT 0,
@@ -254,7 +254,7 @@ class LMSApp:
         attendance_script = """CREATE TABLE IF NOT EXISTS Attendance (
             attendance_id SERIAL PRIMARY KEY,
             user_id INT NOT NULL,
-            course_id INT NOT NULL,
+            course_id TEXT NOT NULL,
             date DATE NOT NULL,
             status VARCHAR(10) CHECK (status IN ('present', 'absent', 'late')) NOT NULL,
             FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
@@ -264,9 +264,9 @@ class LMSApp:
 
         message_script = """CREATE TABLE IF NOT EXISTS message (
             Message_id SERIAL PRIMARY KEY,
-            sender_id INT,
-            receiver_id INT,
-            Message TEXT,
+            sender_id INT NOT NULL,
+            receiver_id INT NOT NULL,
+            Message TEXT NOT NULL,
             Status VARCHAR(100),
             Time TIMESTAMP,
             FOREIGN KEY (sender_id) REFERENCES Users(user_id) ON DELETE CASCADE,
@@ -276,7 +276,7 @@ class LMSApp:
 
         bugs_script = """CREATE TABLE IF NOT EXISTS bug (
             bug_id SERIAL PRIMARY KEY,
-            sender_id INT,
+            sender_id INT NOT NULL,
             Description TEXT NOT NULL,
             status VARCHAR(10) CHECK (status IN ('open', 'in_progress', 'closed')) NOT NULL,
             Time TIMESTAMP,
@@ -286,8 +286,8 @@ class LMSApp:
 
         rechecking_script = """CREATE TABLE IF NOT EXISTS rechecking (
             recheck_id SERIAL PRIMARY KEY,
-            sender_id INT,
-            course_id INT,
+            sender_id INT NOT NULL,
+            course_id TEXT NOT NULL,
             reason TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             exam_type VARCHAR(10) CHECK (exam_type IN ('quiz', 'mid term', 'final')) NOT NULL,
@@ -308,7 +308,7 @@ class LMSApp:
         feedback_script = """CREATE TABLE IF NOT EXISTS feedback (
             feedback_id SERIAL PRIMARY KEY,
             sender_id INT,
-            course_id INT,
+            course_id TEXT NOT NULL,
             instructor_id INT,
             rating INT CHECK (rating BETWEEN 1 AND 5),
             comments TEXT,
@@ -440,67 +440,83 @@ class LMSApp:
         if self.role.strip().lower() == "student":  # Normalize and compare
             menu_label = ttk.Label(self.root, text="User Menu", font=("Arial", 16))
             menu_label.pack(pady=20)
-            ttk.Button(self.root, text="View Courses", command=self.view_courses).pack(pady=5)
-            ttk.Button(self.root, text="View Grades", command=self.view_grades).pack(pady=5)
-            ttk.Button(self.root, text="View Attendance", command=self.view_attendance).pack(
+            ttk.Button(self.root, text="View Courses", command=self.view_courses).pack(
+                pady=5
+            )
+            ttk.Button(self.root, text="View Grades", command=self.view_grades).pack(
                 pady=5
             )
             ttk.Button(
+                self.root, text="View Attendance", command=self.view_attendance
+            ).pack(pady=5)
+            ttk.Button(
                 self.root, text="Request Rechecking", command=self.request_rechecking
             ).pack(pady=5)
-            ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(pady=5)
-            ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(pady=10)
+            ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(
+                pady=5
+            )
+            ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(
+                pady=10
+            )
 
         elif self.role.strip().lower() == "admin":  # Normalize and compare
             menu_label = ttk.Label(self.root, text="Admin Section", font=("Arial", 16))
             menu_label.pack(pady=10)
-            ttk.Button(self.root, text="Manage Users", command=self.manage_users).pack(pady=5)
-            ttk.Button(self.root, text="Manage Courses", command=self.manage_courses).pack(
-                pady=5
-            )
-            ttk.Button(self.root, text="Apply Grading", command=self.show_grading_options).pack(
+            ttk.Button(self.root, text="Manage Users", command=self.manage_users).pack(
                 pady=5
             )
             ttk.Button(
-                self.root, text="View Rechecking Requests", command=self.view_rechecking_requests
+                self.root, text="Manage Courses", command=self.manage_courses
+            ).pack(pady=5)
+            ttk.Button(
+                self.root, text="Apply Grading", command=self.show_grading_options
+            ).pack(pady=5)
+            ttk.Button(
+                self.root,
+                text="View Rechecking Requests",
+                command=self.view_rechecking_requests,
             ).pack(pady=5)
             ttk.Button(
                 self.root,
                 text="View Percentage Distribution",
                 command=lambda: plot_percentage_distribution(self.conn, self.cursor),
             ).pack(pady=5)
-            ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(pady=10)
-            ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(pady=5)
+            ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(
+                pady=10
+            )
+            ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(
+                pady=5
+            )
 
         elif self.role == "instructor":
-                menu_label = ttk.Label(
-                    self.root, text="Instructor's Section", font=("Arial", 16)
-                )
-                menu_label.pack(pady=20)
+            menu_label = ttk.Label(
+                self.root, text="Instructor's Section", font=("Arial", 16)
+            )
+            menu_label.pack(pady=20)
 
-                ttk.Button(
-                    self.root, text="Apply Grading", command=self.show_grading_options
-                ).pack(pady=5)
+            ttk.Button(
+                self.root, text="Apply Grading", command=self.show_grading_options
+            ).pack(pady=5)
 
-                ttk.Button(
-                    self.root,
-                    text="View Rechecking Requests",
-                    command=self.view_rechecking_requests,
-                ).pack(pady=5)
+            ttk.Button(
+                self.root,
+                text="View Rechecking Requests",
+                command=self.view_rechecking_requests,
+            ).pack(pady=5)
 
-                ttk.Button(
-                    self.root,
-                    text="View Percentage Distribution",
-                    command=lambda: plot_percentage_distribution(self.conn, self.cursor),
-                ).pack(pady=5)
+            ttk.Button(
+                self.root,
+                text="View Percentage Distribution",
+                command=lambda: plot_percentage_distribution(self.conn, self.cursor),
+            ).pack(pady=5)
 
-                ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(
-                    pady=5
-                )
+            ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(
+                pady=5
+            )
 
-                ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(
+            ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(
                 pady=10
-                )
+            )
 
     def report_bug(self):
         bug_window = tk.Toplevel(self.root)
@@ -739,36 +755,94 @@ class LMSApp:
         self.recheck_reason_text = tk.Text(self.root, height=5, width=40)
         self.recheck_reason_text.pack(pady=5)
 
-        def submit_recheck_request():
-            course_id = self.recheck_course_var.get()
-            exam_type = self.recheck_exam_type_var.get()
-            reason = self.recheck_reason_text.get("1.0", tk.END).strip()
-            if course_id and exam_type and reason:
-                query = """
-                    INSERT INTO rechecking (sender_id, course_id, reason, exam_type, status)
-                    VALUES (%s, %s, %s, %s, 'pending')
-                """
-                params = (self.user_id, course_id, reason, exam_type)
-                if execute_query(self.conn, self.cursor, query, params):
-                    messagebox.showinfo(
-                        "Rechecking Request", "Your request has been submitted."
-                    )
-                    self.show_user_menu()
-                else:
-                    messagebox.showerror(
-                        "Rechecking Request", "Failed to submit request."
-                    )
-            else:
-                messagebox.showerror("Rechecking Request", "Please fill in all fields.")
-
         submit_button = ttk.Button(
-            self.root, text="Submit Request", command=submit_recheck_request
+            self.root, text="Submit Request", command=self.submit_recheck_request
         )
         submit_button.pack(pady=10)
         back_button = ttk.Button(
             self.root, text="Back to Menu", command=self.show_user_menu
         )
         back_button.pack(pady=10)
+
+    def submit_recheck_request(self):
+        course_id = self.recheck_course_var.get()
+        exam_type = self.recheck_exam_type_var.get()
+        reason = self.recheck_reason_text.get("1.0", tk.END).strip()
+        if course_id and exam_type and reason:
+            query = """
+                INSERT INTO rechecking (sender_id, course_id, reason, exam_type, status)
+                VALUES (%s, %s, %s, %s, 'pending')
+            """
+            params = (self.user_id, course_id, reason, exam_type)
+            if execute_query(self.conn, self.cursor, query, params):
+                messagebox.showinfo(
+                    "Rechecking Request", "Your request has been submitted."
+                )
+                submit_button = ttk.Button(
+                    self.root,
+                    text="Submit Request",
+                    command=self.submit_recheck_request,
+                ).pack(pady=10)
+                messagebox.showerror("Rechecking Request", "Failed to submit request.")
+        else:
+            messagebox.showerror("Rechecking Request", "Please fill in all fields.")
+        self.clear_window()
+        ttk.Label(self.root, text="Request Rechecking", font=("Arial", 16)).pack(
+            pady=20
+        )
+
+        course_label = ttk.Label(self.root, text="Course:")
+        course_label.pack()
+        self.recheck_course_var = tk.StringVar()
+        self.recheck_course_combobox = ttk.Combobox(
+            self.root, textvariable=self.recheck_course_var
+        )
+        self.populate_course_combobox()  # Populate with courses
+        self.recheck_course_combobox.pack(pady=5)
+
+        exam_type_label = ttk.Label(self.root, text="Exam Type:")
+        exam_type_label.pack()
+        self.recheck_exam_type_var = tk.StringVar()
+        self.recheck_exam_type_combobox = ttk.Combobox(
+            self.root,
+            textvariable=self.recheck_exam_type_var,
+            values=["quiz", "mid term", "final"],
+        )
+        self.recheck_exam_type_combobox.pack(pady=5)
+
+        reason_label = ttk.Label(self.root, text="Reason:")
+        reason_label.pack()
+        self.recheck_reason_text = tk.Text(self.root, height=5, width=40)
+        self.recheck_reason_text.pack(pady=5)
+
+    def submit_recheck_request(self):
+        course_id = self.recheck_course_var.get()
+        exam_type = self.recheck_exam_type_var.get()
+        reason = self.recheck_reason_text.get("1.0", tk.END).strip()
+        if course_id and exam_type and reason:
+            query = """
+                    INSERT INTO rechecking (sender_id, course_id, reason, exam_type, status)
+                    VALUES (%s, %s, %s, %s, 'pending')
+                """
+            params = (self.user_id, course_id, reason, exam_type)
+            if execute_query(self.conn, self.cursor, query, params):
+                messagebox.showinfo(
+                    "Rechecking Request", "Your request has been submitted."
+                )
+                self.show_user_menu()
+            else:
+                messagebox.showerror("Rechecking Request", "Failed to submit request.")
+        else:
+            messagebox.showerror("Rechecking Request", "Please fill in all fields.")
+
+            submit_button = ttk.Button(
+                self.root, text="Submit Request", command=submit_recheck_request
+            )
+            submit_button.pack(pady=10)
+            back_button = ttk.Button(
+                self.root, text="Back to Menu", command=self.show_user_menu
+            )
+            back_button.pack(pady=10)
 
     def populate_course_combobox(self):
         query = "SELECT course_id, title FROM Courses"  # Adjust query as needed
@@ -1119,9 +1193,7 @@ class LMSApp:
             self.instructor_map = {
                 f"{name} (ID: {uid})": uid for uid, name in instructors
             }
-            combobox["values"] = list(
-                self.instructor_map.keys()
-            )
+            combobox["values"] = list(self.instructor_map.keys())
         else:
             self.instructor_map = {}
             self.edit_course_instructor_combobox["values"] = []
