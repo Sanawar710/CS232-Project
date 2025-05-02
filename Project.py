@@ -836,7 +836,7 @@ class LMSApp:
             messagebox.showerror("Rechecking Request", "Please fill in all fields.")
 
             submit_button = ttk.Button(
-                self.root, text="Submit Request", command=submit_recheck_request
+                self.root, text="Submit Request", command=self.submit_recheck_request
             )
             submit_button.pack(pady=10)
             back_button = ttk.Button(
@@ -1129,7 +1129,7 @@ class LMSApp:
         self.add_course_instructor_combobox = ttk.Combobox(
             self.root, textvariable=self.add_course_instructor_var
         )
-        self.populate_instructor_combobox()
+        self.populate_instructor_combobox(self.add_course_instructor_combobox)
         self.add_course_instructor_combobox.pack(pady=5)
 
         semester_label = ttk.Label(self.root, text="Semester:")
@@ -1187,6 +1187,7 @@ class LMSApp:
         back_button.pack(pady=10)
 
     def populate_instructor_combobox(self, combobox):
+        """Populate the instructor combobox with instructor names."""
         query = "SELECT user_id, name FROM Users WHERE role = 'instructor'"
         instructors = execute_query(self.conn, self.cursor, query, fetch=True)
         if instructors:
@@ -1224,9 +1225,8 @@ class LMSApp:
             self.root, textvariable=self.edit_course_instructor_var
         )
         self.populate_instructor_combobox(self.edit_course_instructor_combobox)
-        self.edit_course_instructor_combobox["state"] = (
-            "normal"  # Ensure combobox is editable
-        )
+        self.edit_course_instructor_combobox.pack(pady=5)
+        
         self.edit_course_instructor_combobox.pack(pady=5)
 
         semester_label = ttk.Label(self.root, text="New Semester:")
