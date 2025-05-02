@@ -359,13 +359,12 @@ class LMSApp:
             self.root, text="Login as Admin", command=self.login_admin
         )
         login_admin_button.pack(pady=10)
-        
-        
+
         login_instructor_button = ttk.Button(
             self.root, text="Login as Instructor", command=self.login_instructor
         )
         login_instructor_button.pack(pady=10)
-        
+
         register_user_button = ttk.Button(
             self.root, text="Register", command=self.show_registration_form
         )
@@ -438,55 +437,72 @@ class LMSApp:
     def show_user_menu(self):
         self.clear_window()
 
-        if self.role == "student":
+        if self.role.strip().lower() == "student":  # Normalize and compare
             menu_label = ttk.Label(self.root, text="User Menu", font=("Arial", 16))
             menu_label.pack(pady=20)
-            ttk.Button(self.root, text="View Courses", command=self.view_courses).pack(
+            ttk.Button(self.root, text="View Courses", command=self.view_courses).pack(pady=5)
+            ttk.Button(self.root, text="View Grades", command=self.view_grades).pack(pady=5)
+            ttk.Button(self.root, text="View Attendance", command=self.view_attendance).pack(
                 pady=5
             )
-            ttk.Button(self.root, text="View Grades", command=self.view_grades).pack(
-                pady=5
-            )
-            ttk.Button(
-                self.root, text="View Attendance", command=self.view_attendance
-            ).pack(pady=5)
             ttk.Button(
                 self.root, text="Request Rechecking", command=self.request_rechecking
             ).pack(pady=5)
-            ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(
+            ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(pady=5)
+            ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(pady=10)
+
+        elif self.role.strip().lower() == "admin":  # Normalize and compare
+            menu_label = ttk.Label(self.root, text="Admin Section", font=("Arial", 16))
+            menu_label.pack(pady=10)
+            ttk.Button(self.root, text="Manage Users", command=self.manage_users).pack(pady=5)
+            ttk.Button(self.root, text="Manage Courses", command=self.manage_courses).pack(
                 pady=5
             )
-            ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(
-                pady=10
+            ttk.Button(self.root, text="Apply Grading", command=self.show_grading_options).pack(
+                pady=5
             )
-        elif self.role == "instructor":
-            menu_label = ttk.Label(self.root, text="Admin Section", font=("Arial", 16))
-            menu_label.pack(pady=20)
-
             ttk.Button(
-                self.root, text="Apply Grading", command=self.show_grading_options
+                self.root, text="View Rechecking Requests", command=self.view_rechecking_requests
             ).pack(pady=5)
-
-            ttk.Button(
-                self.root,
-                text="View Rechecking Requests",
-                command=self.view_rechecking_requests,
-            ).pack(pady=5)
-
             ttk.Button(
                 self.root,
                 text="View Percentage Distribution",
                 command=lambda: plot_percentage_distribution(self.conn, self.cursor),
             ).pack(pady=5)
+            ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(pady=10)
+            ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(pady=5)
 
-            ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(
-                pady=5
-            )
+        elif self.role == "instructor":
+                menu_label = ttk.Label(
+                    self.root, text="Instructor's Section", font=("Arial", 16)
+                )
+                menu_label.pack(pady=20)
 
-            ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(
+                ttk.Button(
+                    self.root, text="Apply Grading", command=self.show_grading_options
+                ).pack(pady=5)
+
+                ttk.Button(
+                    self.root,
+                    text="View Rechecking Requests",
+                    command=self.view_rechecking_requests,
+                ).pack(pady=5)
+
+                ttk.Button(
+                    self.root,
+                    text="View Percentage Distribution",
+                    command=lambda: plot_percentage_distribution(self.conn, self.cursor),
+                ).pack(pady=5)
+
+                ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(
+                    pady=5
+                )
+
+                ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(
                 pady=10
-            )
-        else:
+                )
+                
+        elif self.role == "admin":
             menu_label = ttk.Label(self.root, text="Admin Section", font=("Arial", 16))
             menu_label.pack(pady=20)
 
@@ -1008,7 +1024,6 @@ class LMSApp:
     def manage_courses(self):
         self.clear_window()
         ttk.Label(self.root, text="Manage Courses", font=("Arial", 16)).pack(pady=20)
-        # Add functionality to view, add, edit, and delete courses
         ttk.Button(self.root, text="View Courses", command=self.view_all_courses).pack(
             pady=5
         )
@@ -1118,13 +1133,18 @@ class LMSApp:
         back_button.pack(pady=10)
 
     def populate_instructor_combobox(self):
-        query = "SELECT name FROM Users WHERE role = 'instructor'"
+        query = "SELECT user_id, name FROM Users WHERE role = 'instructor'"
         instructors = execute_query(self.conn, self.cursor, query, fetch=True)
         if instructors:
-            instructor_names = [instructor[0] for instructor in instructors]
-            self.add_course_instructor_combobox["values"] = instructor_names
+            self.instructor_map = {
+                f"{name} (ID: {uid})": uid for uid, name in instructors
+            }
+            self.edit_course_instructor_combobox["values"] = list(
+                self.instructor_map.keys()
+            )
         else:
-            self.add_course_instructor_combobox["values"] = []
+            self.instructor_map = {}
+            self.edit_course_instructor_combobox["values"] = []
 
     def edit_course(self):
         self.clear_window()
@@ -1152,12 +1172,24 @@ class LMSApp:
             self.root, textvariable=self.edit_course_instructor_var
         )
         self.populate_instructor_combobox()
+        self.edit_course_instructor_combobox["state"] = (
+            "normal"  # Ensure combobox is editable
+        )
         self.edit_course_instructor_combobox.pack(pady=5)
 
         semester_label = ttk.Label(self.root, text="New Semester:")
         semester_label.pack()
         self.edit_course_semester_entry = ttk.Entry(self.root)
         self.edit_course_semester_entry.pack(pady=5)
+
+        ttk.Button(
+            self.root, text="Save Changes", command=self.save_course_changes
+        ).pack(pady=10)
+
+        back_button = ttk.Button(
+            self.root, text="Back to Manage Courses", command=self.manage_courses
+        )
+        back_button.pack(pady=10)
 
         def update_course_in_db():
             course_id = self.edit_course_id_entry.get()
@@ -1272,6 +1304,31 @@ class LMSApp:
             self.root, text="Back to Manage Courses", command=self.manage_courses
         )
         back_button.pack(pady=10)
+
+    def save_course_changes(self):
+        try:
+            course_id = self.edit_course_id_entry.get()
+            new_title = self.edit_course_title_entry.get()
+            new_credits = int(self.edit_course_credits_entry.get())
+            new_semester = self.edit_course_semester_entry.get()
+            instructor_key = self.edit_course_instructor_var.get()
+            instructor_id = self.instructor_map.get(instructor_key)
+
+            if not (new_title and new_credits and new_semester and instructor_id):
+                messagebox.showerror("Error", "All fields are required.")
+                return
+
+            query = """UPDATE Courses
+                       SET title = %s, credit_hours = %s, semester = %s, instructor_id = %s
+                       WHERE course_id = %s"""
+            params = (new_title, new_credits, new_semester, instructor_id, course_id)
+            success = execute_query(self.conn, self.cursor, query, params)
+
+            if success:
+                messagebox.showinfo("Success", "Course updated successfully.")
+                self.manage_courses()
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to update course: {e}")
 
     def view_rechecking_requests(self):
         self.clear_window()
