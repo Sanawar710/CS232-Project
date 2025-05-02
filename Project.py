@@ -1,3 +1,4 @@
+import datetime  # 'datetime' is a module for manipulating dates and times.
 import tkinter as tk  # 'tkinter' is a standard GUI toolkit in Python.
 from tkinter import ttk, messagebox  # 'ttk' is a themed widget set for tkinter.
 import psycopg2 as pg  # 'psycopg2' is used to connect to PostgreSQL databases with Python.
@@ -418,11 +419,12 @@ class LMSApp:
             )
 
     def show_user_menu(self):
+        print(f"Current role: {self.role}")  # Add this line
         self.clear_window()
-        menu_label = ttk.Label(self.root, text="User Menu", font=("Arial", 16))
-        menu_label.pack(pady=20)
-
+        
         if self.role == "student":
+            menu_label = ttk.Label(self.root, text="User Menu", font=("Arial", 16))
+            menu_label.pack(pady=20)
             ttk.Button(self.root, text="View Courses", command=self.view_courses).pack(
                 pady=5
             )
@@ -436,28 +438,38 @@ class LMSApp:
                 self.root, text="Request Rechecking", command=self.request_rechecking
             ).pack(
                 pady=5
-            )  # 👈 Add this line
+            )  
 
         elif self.role == "admin":
+            ttk.Label(self.root, text="Admin Section", font=("Arial", 16)).pack(pady=10)
+
             ttk.Button(self.root, text="Manage Users", command=self.manage_users).pack(
                 pady=5
             )
+
             ttk.Button(
                 self.root, text="Manage Courses", command=self.manage_courses
             ).pack(pady=5)
+
             ttk.Button(
                 self.root, text="Apply Grading", command=self.show_grading_options
             ).pack(pady=5)
+
+            ttk.Button(
+                self.root,
+                text="View Rechecking Requests",
+                command=self.view_rechecking_requests,
+            ).pack(pady=5)
+
             ttk.Button(
                 self.root,
                 text="View Percentage Distribution",
                 command=lambda: plot_percentage_distribution(self.conn, self.cursor),
             ).pack(pady=5)
 
-        logout_button = ttk.Button(
-            self.root, text="Logout", command=self.show_login_menu
-        )
-        logout_button.pack(pady=10)
+            ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(
+                pady=10
+            )
 
     def show_grading_options(self):
         grading_window = tk.Toplevel(self.root)
@@ -793,13 +805,17 @@ class LMSApp:
 
     def request_rechecking(self):
         self.clear_window()
-        ttk.Label(self.root, text="Request Rechecking", font=("Arial", 14)).pack(pady=10)
+        ttk.Label(self.root, text="Request Rechecking", font=("Arial", 14)).pack(
+            pady=10
+        )
 
         # Fetch student courses
         query = """SELECT c.course_id, c.title FROM Courses c
                    JOIN Registrations r ON c.course_id = r.course_id
                    WHERE r.user_id = %s"""
-        courses = execute_query(self.conn, self.cursor, query, (self.user_id,), fetch=True)
+        courses = execute_query(
+            self.conn, self.cursor, query, (self.user_id,), fetch=True
+        )
 
         if not courses:
             ttk.Label(self.root, text="No courses found for rechecking.").pack(pady=10)
@@ -807,33 +823,41 @@ class LMSApp:
 
         # Select course
         ttk.Label(self.root, text="Select Course:").pack()
-        self.course_var = tk.StringVar(self.root)  # Make course_var an instance variable
+        self.course_var = tk.StringVar(
+            self.root
+        )  # Make course_var an instance variable
         course_dropdown = ttk.Combobox(
             self.root,
             textvariable=self.course_var,
             values=[f"{c[0]} - {c[1]}" for c in courses],
-            state="readonly"
+            state="readonly",
         )
         course_dropdown.pack(pady=5)
 
         # Select exam type
         ttk.Label(self.root, text="Select Exam Type:").pack()
-        self.exam_type_var = tk.StringVar(self.root)  # Make exam_type_var an instance variable
+        self.exam_type_var = tk.StringVar(
+            self.root
+        )  # Make exam_type_var an instance variable
         exam_type_dropdown = ttk.Combobox(
             self.root,
             textvariable=self.exam_type_var,
             values=["quiz", "mid term", "final"],
-            state="readonly"
+            state="readonly",
         )
         exam_type_dropdown.pack(pady=5)
 
         # Reason
         ttk.Label(self.root, text="Reason for Rechecking:").pack()
-        self.reason_text = tk.Text(self.root, height=4, width=40)  # Make reason_text an instance variable
+        self.reason_text = tk.Text(
+            self.root, height=4, width=40
+        )  # Make reason_text an instance variable
         self.reason_text.pack(pady=5)
 
         # Submit button
-        ttk.Button(self.root, text="Submit Request", command=self.submit_request).pack(pady=10)
+        ttk.Button(self.root, text="Submit Request", command=self.submit_request).pack(
+            pady=10
+        )
         ttk.Button(self.root, text="Back", command=self.show_user_menu).pack(pady=5)
 
     # Submit function
@@ -863,7 +887,7 @@ class LMSApp:
                 messagebox.showinfo("Success", "Rechecking request submitted.")
                 self.show_user_menu()
         except Exception as e:
-                messagebox.showerror("Error", f"Submission failed: {e}")
+            messagebox.showerror("Error", f"Submission failed: {e}")
 
     def view_attendance(self):
         self.clear_window()
@@ -941,6 +965,190 @@ class LMSApp:
         )
         back_button.pack(pady=10)
 
+    def mark_attendance(self):
+        self.clear_window()
+        ttk.Label(self.root, text="Mark Attendance", font=("Arial", 14)).pack(pady=10)
+
+        # Fetch all courses taught by the instructor (assuming you have a way to identify this)
+        instructor_id = self.user_id  # Assuming self.user_id holds the instructor's ID
+        query_instructor_courses = """SELECT c.course_id, c.title FROM Courses c
+                                      JOIN InstructorCourses ic ON c.course_id = ic.course_id
+                                      WHERE ic.instructor_id = %s"""
+        instructor_courses = execute_query(
+            self.conn,
+            self.cursor,
+            query_instructor_courses,
+            (instructor_id,),
+            fetch=True,
+        )
+
+        if not instructor_courses:
+            ttk.Label(
+                self.root, text="No courses assigned to you for attendance."
+            ).pack(pady=10)
+            ttk.Button(self.root, text="Back", command=self.instructor_section).pack(
+                pady=5
+            )
+            return
+
+        ttk.Label(self.root, text="Select Course:").pack()
+        self.attendance_course_var = tk.StringVar(self.root)
+        course_values = [f"{c[0]} - {c[1]}" for c in instructor_courses]
+        self.attendance_course_dropdown = ttk.Combobox(
+            self.root,
+            textvariable=self.attendance_course_var,
+            values=course_values,
+            state="readonly",
+        )
+        self.attendance_course_dropdown.pack(pady=5)
+        self.attendance_course_dropdown.bind(
+            "<<ComboboxSelected>>", self._load_students_for_attendance
+        )
+
+        # Frame to hold the student list and attendance options
+        self.attendance_frame = ttk.Frame(self.root)
+        self.attendance_frame.pack(pady=10, padx=10, fill="both", expand=True)
+
+        self.attendance_canvas = tk.Canvas(self.attendance_frame)
+        self.attendance_canvas.pack(side="left", fill="both", expand=True)
+
+        self.attendance_scrollbar = ttk.Scrollbar(
+            self.attendance_frame,
+            orient="vertical",
+            command=self.attendance_canvas.yview,
+        )
+        self.attendance_scrollbar.pack(side="right", fill="y")
+
+        self.attendance_canvas.configure(yscrollcommand=self.attendance_scrollbar.set)
+        self.attendance_canvas.bind(
+            "<Configure>",
+            lambda e: self.attendance_canvas.configure(
+                scrollregion=self.attendance_canvas.bbox("all")
+            ),
+        )
+
+        self.attendance_inner_frame = ttk.Frame(self.attendance_canvas)
+        self.attendance_canvas.create_window(
+            (0, 0), window=self.attendance_inner_frame, anchor="nw"
+        )
+
+        self.attendance_data = {}  # To store attendance status for each student
+
+        ttk.Button(
+            self.root, text="Save Attendance", command=self._save_attendance
+        ).pack(pady=10)
+        ttk.Button(self.root, text="Back", command=self.instructor_section).pack(pady=5)
+
+    def _load_students_for_attendance(self, event=None):
+        selected_course = self.attendance_course_var.get()
+        if not selected_course:
+            return
+        course_id = int(selected_course.split(" - ")[0])
+
+        # Fetch students registered in the selected course
+        query_students = """SELECT u.user_id, u.username FROM Users u
+                            JOIN Registrations r ON u.user_id = r.user_id
+                            WHERE r.course_id = %s AND u.role = 'student'"""
+        students = execute_query(
+            self.conn, self.cursor, query_students, (course_id,), fetch=True
+        )
+
+        # Clear previous student list
+        for widget in self.attendance_inner_frame.winfo_children():
+            widget.destroy()
+        self.attendance_data = {}
+
+        if students:
+            for student_id, username in students:
+                student_frame = ttk.Frame(self.attendance_inner_frame)
+                student_frame.pack(pady=2, fill="x")
+
+                ttk.Label(student_frame, text=username, width=30, anchor="w").pack(
+                    side="left"
+                )
+
+                attendance_var = tk.StringVar(student_frame)
+                attendance_var.set("Present")  # Default value
+                attendance_options = ["Present", "Absent", "Late"]
+                attendance_dropdown = ttk.Combobox(
+                    student_frame,
+                    textvariable=attendance_var,
+                    values=attendance_options,
+                    state="readonly",
+                    width=10,
+                )
+                attendance_dropdown.pack(side="left", padx=5)
+                self.attendance_data[student_id] = attendance_var
+        else:
+            ttk.Label(
+                self.attendance_inner_frame,
+                text="No students registered in this course.",
+            ).pack(pady=5)
+
+        self.attendance_inner_frame.update_idletasks()
+        self.attendance_canvas.config(scrollregion=self.attendance_canvas.bbox("all"))
+
+    def _save_attendance(self):
+        selected_course = self.attendance_course_var.get()
+        if not selected_course:
+            messagebox.showerror("Error", "Please select a course to save attendance.")
+            return
+        course_id = int(selected_course.split(" - ")[0])
+
+        today = datetime.date.today()
+
+        for student_id, attendance_var in self.attendance_data.items():
+            status = attendance_var.get()
+            # You'll need an 'attendance' table in your database
+            insert_query = """
+                INSERT INTO attendance (course_id, student_id, date, status)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (course_id, student_id, date) DO UPDATE SET status = %s
+            """
+            params = (
+                course_id,
+                student_id,
+                today,
+                status,
+                status,
+            )  # For SQLite ON CONFLICT
+            # For MySQL/PostgreSQL, the ON CONFLICT syntax might be different
+            success = execute_query(self.conn, self.cursor, insert_query, params)
+            if not success:
+                messagebox.showerror(
+                    "Error", f"Failed to save attendance for student ID: {student_id}"
+                )
+                return
+
+        messagebox.showinfo(
+            "Success", "Attendance saved successfully for the selected course."
+        )
+
+    def manage_courses(self):
+        self.clear_window()
+        ttk.Label(
+            self.root, text="Manage Courses (Placeholder)", font=("Arial", 14)
+        ).pack(pady=10)
+        ttk.Label(
+            self.root, text="Functionality to manage courses will be implemented here."
+        ).pack(pady=5)
+        ttk.Button(self.root, text="Back", command=self.instructor_section).pack(
+            pady=10
+        )
+
+    def view_rechecking_requests(self):
+        self.clear_window()
+        ttk.Label(
+            self.root, text="View Rechecking Requests (Placeholder)", font=("Arial", 14)
+        ).pack(pady=10)
+        ttk.Label(
+            self.root,
+            text="Functionality to view and manage rechecking requests will be implemented here.",
+        ).pack(pady=5)
+        ttk.Button(self.root, text="Back", command=self.instructor_section).pack(
+            pady=10
+        )
+
     def view_grades_for_course(self, course_title):
         grades_window = tk.Toplevel(self.root)
         grades_window.title(f"Grades for {course_title}")
@@ -1002,8 +1210,6 @@ class LMSApp:
         if "@" not in email:
             messagebox.showerror("Registration Error", "Invalid email address.")
             return
-
-        # TODO: Password strength validation
 
         # Check if email already exists
         check_email_query = "SELECT email FROM Users WHERE email = %s"
