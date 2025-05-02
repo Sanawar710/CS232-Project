@@ -432,16 +432,12 @@ class LMSApp:
             ttk.Button(
                 self.root, text="View Attendance", command=self.view_attendance
             ).pack(pady=5)
-        elif self.role == "instructor":
-            ttk.Button(self.root, text="View Courses", command=self.view_courses).pack(
+            ttk.Button(
+                self.root, text="Request Rechecking", command=self.request_rechecking
+            ).pack(
                 pady=5
-            )
-            ttk.Button(
-                self.root, text="Manage Grades", command=self.manage_grades
-            ).pack(pady=5)
-            ttk.Button(
-                self.root, text="View Student Attendance", command=self.view_attendance
-            ).pack(pady=5)
+            )  # 👈 Add this line
+
         elif self.role == "admin":
             ttk.Button(self.root, text="Manage Users", command=self.manage_users).pack(
                 pady=5
@@ -794,6 +790,80 @@ class LMSApp:
             return "D"
         else:
             return "F"
+
+    def request_rechecking(self):
+        self.clear_window()
+        ttk.Label(self.root, text="Request Rechecking", font=("Arial", 14)).pack(pady=10)
+
+        # Fetch student courses
+        query = """SELECT c.course_id, c.title FROM Courses c
+                   JOIN Registrations r ON c.course_id = r.course_id
+                   WHERE r.user_id = %s"""
+        courses = execute_query(self.conn, self.cursor, query, (self.user_id,), fetch=True)
+
+        if not courses:
+            ttk.Label(self.root, text="No courses found for rechecking.").pack(pady=10)
+            return
+
+        # Select course
+        ttk.Label(self.root, text="Select Course:").pack()
+        self.course_var = tk.StringVar(self.root)  # Make course_var an instance variable
+        course_dropdown = ttk.Combobox(
+            self.root,
+            textvariable=self.course_var,
+            values=[f"{c[0]} - {c[1]}" for c in courses],
+            state="readonly"
+        )
+        course_dropdown.pack(pady=5)
+
+        # Select exam type
+        ttk.Label(self.root, text="Select Exam Type:").pack()
+        self.exam_type_var = tk.StringVar(self.root)  # Make exam_type_var an instance variable
+        exam_type_dropdown = ttk.Combobox(
+            self.root,
+            textvariable=self.exam_type_var,
+            values=["quiz", "mid term", "final"],
+            state="readonly"
+        )
+        exam_type_dropdown.pack(pady=5)
+
+        # Reason
+        ttk.Label(self.root, text="Reason for Rechecking:").pack()
+        self.reason_text = tk.Text(self.root, height=4, width=40)  # Make reason_text an instance variable
+        self.reason_text.pack(pady=5)
+
+        # Submit button
+        ttk.Button(self.root, text="Submit Request", command=self.submit_request).pack(pady=10)
+        ttk.Button(self.root, text="Back", command=self.show_user_menu).pack(pady=5)
+
+    # Submit function
+    def submit_request(self):
+        try:
+            course_selection = self.course_var.get()
+            if not course_selection:
+                messagebox.showerror("Error", "Please select a course.")
+                return
+            course_id = int(course_selection.split(" - ")[0])
+
+            exam_type = self.exam_type_var.get()
+            reason = self.reason_text.get("1.0", tk.END).strip()
+
+            if not exam_type or not reason:
+                messagebox.showerror("Error", "All fields are required.")
+                return
+
+            insert_query = """
+                INSERT INTO rechecking (sender_id, course_id, reason, exam_type, status)
+                VALUES (%s, %s, %s, %s, 'pending')
+            """
+            params = (self.user_id, course_id, reason, exam_type)
+            success = execute_query(self.conn, self.cursor, insert_query, params)
+
+            if success:
+                messagebox.showinfo("Success", "Rechecking request submitted.")
+                self.show_user_menu()
+        except Exception as e:
+                messagebox.showerror("Error", f"Submission failed: {e}")
 
     def view_attendance(self):
         self.clear_window()
