@@ -1532,9 +1532,10 @@ class LMSApp:
         )
         back_button.pack(pady=10)
 
-    # Call this here to ensure the dropdown is populated when the form is shown
-    populate_instructor_dropdown()
-
+        # Call this here to ensure the dropdown is populated when the form is shown
+        self.populate_instructor_dropdown(self.add_course_instructor_combobox)
+    
+    
     def get_course_id(self):
         try:
             return int(self.edit_course_id_entry.get())
