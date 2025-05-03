@@ -73,27 +73,33 @@ def execute_query(conn, cursor, query, params=None, fetch=False):
         return False
 
 
-def absolute_grading(conn, cursor):
-    query = """UPDATE Results
+def absolute_grading(conn, cursor, course_id):
+    query = """
+    UPDATE Results
     SET Grade = CASE
         WHEN total_marks >= 80 THEN 'A'
         WHEN total_marks >= 70 THEN 'B'
         WHEN total_marks >= 60 THEN 'C'
         WHEN total_marks >= 50 THEN 'D'
         ELSE 'F'
-    END;
+    END
+    WHERE course_id = %s
     """
-    if execute_query(conn, cursor, query):
+    if execute_query(conn, cursor, query, (course_id,)):
         messagebox.showinfo("Grading", "Absolute grading applied successfully.")
 
 
-def relative_grading(conn, cursor):
+def relative_grading(conn, cursor, course_id):
     try:
-        cursor.execute("SELECT AVG(total_marks), STDDEV(total_marks) FROM Results;")
+        cursor.execute(
+            "SELECT AVG(total_marks), STDDEV(total_marks) FROM Results WHERE course_id = %s;",
+            (course_id,),
+        )
         result = cursor.fetchone()
         if result and result[0] is not None and result[1] is not None:
             mean, stddev = result
-            query = """UPDATE Results
+            query = """
+                UPDATE Results
                 SET grade = CASE
                     WHEN total_marks >= %s + 1 * %s THEN 'A'
                     WHEN total_marks >= %s + 0.5 * %s THEN 'B'
@@ -101,8 +107,9 @@ def relative_grading(conn, cursor):
                     WHEN total_marks >= %s - 1 * %s THEN 'D'
                     ELSE 'F'
                 END
+                WHERE course_id = %s
             """
-            params = (mean, stddev, mean, stddev, mean, stddev, mean, stddev)
+            params = (mean, stddev, mean, stddev, mean, stddev, mean, stddev, course_id)
             if execute_query(conn, cursor, query, params):
                 messagebox.showinfo("Grading", "Relative grading applied successfully.")
         else:
@@ -655,65 +662,79 @@ class LMSApp:
         grading_window = tk.Toplevel(self.root)
         grading_window.title("Apply Grading")
 
+        ttk.Label(grading_window, text="Select Course:", font=("Arial", 12)).pack(
+            pady=5
+        )
+
+        # Fetch courses from the database to populate the dropdown
+        query = "SELECT course_id, title FROM Courses"
+        courses = execute_query(self.conn, self.cursor, query, fetch=True)
+        if not courses:
+            messagebox.showerror("Error", "No courses found.")
+            grading_window.destroy()
+            return
+
+        course_names = [f"{title} ({course_id})" for course_id, title in courses]
+        self.selected_course_var = tk.StringVar()
+        course_dropdown = ttk.Combobox(
+            grading_window, textvariable=self.selected_course_var, values=course_names
+        )
+        course_dropdown.pack(pady=5)
+
         ttk.Label(
             grading_window, text="Choose Grading Method:", font=("Arial", 12)
         ).pack(pady=10)
 
-    def apply_grading_and_save(self, grading_function):
-        file_path = tk.filedialog.asksaveasfilename(
-            defaultextension=".csv",
-            filetypes=[("CSV files", "*.csv")],
-            title="Save Graded Results As",
-        )
-        if not file_path:
-            messagebox.showerror("Error", "File path not provided.")
-            return
-
-        grading_function(self.conn, self.cursor)
-        query = "SELECT * FROM Results;"
-        results = execute_query(self.conn, self.cursor, query, fetch=True)
-        if results:
-            columns = [desc[0] for desc in self.cursor.description]
-            df = pd.DataFrame(results, columns=columns)
-            df.to_csv(file_path, index=False)
-            messagebox.showinfo("Grading", f"Grading applied and saved to {file_path}.")
-            plot_percentage_distribution(self.conn, self.cursor)
-
-        grading_window = tk.Toplevel(self.root)
-        grading_window.title("Apply Grading")
-
-    def apply_grading_and_save(self, grading_function):
-        file_path = tk.filedialog.asksaveasfilename(
-            defaultextension=".csv",
-            filetypes=[("CSV files", "*.csv")],
-            title="Save Graded Results As",
-        )
-        if not file_path:
-            messagebox.showerror("Error", "File path not provided.")
-            return
-
-        grading_function(self.conn, self.cursor)
-        query = "SELECT * FROM Results;"
-        results = execute_query(self.conn, self.cursor, query, fetch=True)
-        if results:
-            columns = [desc[0] for desc in self.cursor.description]
-            df = pd.DataFrame(results, columns=columns)
-            df.to_csv(file_path, index=False)
-            messagebox.showinfo("Grading", f"Grading applied and saved to {file_path}.")
-            plot_percentage_distribution(self.conn, self.cursor)
-        grading_window = tk.Toplevel(self.root)
-        grading_window.title("Apply Grading")
-
         ttk.Button(
             grading_window,
             text="Absolute Grading",
-            command=lambda: self.apply_grading_and_save(absolute_grading),
+            command=lambda: self.apply_grading_and_save(
+                absolute_grading, self.selected_course_var.get()
+            ),
         ).pack(pady=5)
         ttk.Button(
             grading_window,
             text="Relative Grading",
-            command=lambda: self.apply_grading_and_save(relative_grading),
+            command=lambda: self.apply_grading_and_save(
+                relative_grading, self.selected_course_var.get()
+            ),
         ).pack(pady=5)
+
+    def apply_grading_and_save(self, grading_function, selected_course_name):
+        if not selected_course_name:
+            messagebox.showerror("Error", "Please select a course.")
+            return
+
+        # Extract course_id from the selected course name
+        course_id = selected_course_name.split("(")[-1].split(")")[0]
+
+        # Apply grading for the selected course
+        grading_function(self.conn, self.cursor, course_id)
+
+        # Save results to the database
+        query = """UPDATE Results
+        SET total_marks = quiz1 + quiz2 + midterm + final
+        WHERE course_id = %s"""
+        execute_query(self.conn, self.cursor, query, (course_id,))
+
+        # Prompt user to save results to a CSV file
+        file_path = tk.filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv")],
+            title="Save Graded Results As",
+        )
+        if not file_path:
+            messagebox.showerror("Error", "File path not provided.")
+            return
+
+        query = "SELECT * FROM Results WHERE course_id = %s;"
+        results = execute_query(self.conn, self.cursor, query, (course_id,), fetch=True)
+        if results:
+            columns = [desc[0] for desc in self.cursor.description]
+            df = pd.DataFrame(results, columns=columns)
+            df.to_csv(file_path, index=False)
+            messagebox.showinfo("Grading", f"Grading applied and saved to {file_path}.")
+            plot_percentage_distribution(self.conn, self.cursor)
 
     def view_courses(self):
         self.clear_window()
