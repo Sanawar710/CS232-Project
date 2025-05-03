@@ -424,9 +424,8 @@ class LMSApp:
             messagebox.showerror("Login Error", "Please enter both email and password.")
             return
 
-        query = (
-            "SELECT user_id, name, role FROM Users WHERE email = %s AND password = %s"
-        )
+        query = """SELECT user_id, name, role FROM Users WHERE email = %s AND password = %s"""
+
         self.cursor.execute(query, (email, password))
         user_data = self.cursor.fetchone()
 
@@ -536,8 +535,7 @@ class LMSApp:
         def submit_bug():
             description = bug_text.get("1.0", tk.END).strip()
             if description:
-                query = """
-                    INSERT INTO bug (sender_id, Description, status, Time)
+                query = """INSERT INTO bug (sender_id, Description, status, Time)
                     VALUES (%s, %s, 'open', NOW())  -- status is 'open' by default, Time is NOW()
                 """
                 params = (self.user_id, description)
@@ -628,18 +626,15 @@ class LMSApp:
         # Insert new user into the appropriate table based on role
         try:
             if role == "student":
-                insert_user_query = """
-                    INSERT INTO Students (name, email, password, role, program, semester)
+                insert_user_query = """INSERT INTO Students (name, email, password, role, program, semester)
                     VALUES (%s, %s, %s, %s, NULL, NULL)
                 """
             elif role == "instructor":
-                insert_user_query = """
-                    INSERT INTO Instructors (name, email, password, role, department, designation)
+                insert_user_query = """INSERT INTO Instructors (name, email, password, role, department, designation)
                     VALUES (%s, %s, %s, %s, NULL, NULL)
                 """
             elif role == "admin":
-                insert_user_query = """
-                    INSERT INTO Admins (name, email, password, role, role_description)
+                insert_user_query = """INSERT INTO Admins (name, email, password, role, role_description)
                     VALUES (%s, %s, %s, %s, NULL)
                 """
             else:
@@ -739,8 +734,7 @@ class LMSApp:
     def view_courses(self):
         self.clear_window()
         ttk.Label(self.root, text="View Courses", font=("Arial", 16)).pack(pady=20)
-        query = """
-            SELECT c.course_id, c.title, c.credit_hours, u.name as instructor_name
+        query = """SELECT c.course_id, c.title, c.credit_hours, u.name as instructor_name
             FROM Courses c
             JOIN Users u ON c.instructor_id = u.user_id
         """
@@ -758,8 +752,7 @@ class LMSApp:
     def view_grades(self):
         self.clear_window()
         ttk.Label(self.root, text="View Grades", font=("Arial", 16)).pack(pady=20)
-        query = """
-            SELECT c.title, r.quiz1, r.quiz2, r.midterm, r.final, r.total_marks, r.grade
+        query = """SELECT c.title, r.quiz1, r.quiz2, r.midterm, r.final, r.total_marks, r.grade
             FROM Results r
             JOIN Courses c ON r.course_id = c.course_id
             WHERE r.user_id = %s
@@ -780,8 +773,7 @@ class LMSApp:
     def view_attendance(self):
         self.clear_window()
         ttk.Label(self.root, text="View Attendance", font=("Arial", 16)).pack(pady=20)
-        query = """
-            SELECT c.title, a.date, a.status
+        query = """SELECT c.title, a.date, a.status
             FROM Attendance a
             JOIN Courses c ON a.course_id = c.course_id
             WHERE a.user_id = %s
@@ -845,8 +837,7 @@ class LMSApp:
         exam_type = self.recheck_exam_type_var.get()
         reason = self.recheck_reason_text.get("1.0", tk.END).strip()
         if course_id and exam_type and reason:
-            query = """
-                INSERT INTO rechecking (sender_id, course_id, reason, exam_type, status)
+            query = """INSERT INTO rechecking (sender_id, course_id, reason, exam_type, status)
                 VALUES (%s, %s, %s, %s, 'pending')
             """
             params = (self.user_id, course_id, reason, exam_type)
@@ -1169,8 +1160,7 @@ class LMSApp:
     def view_all_courses(self):
         self.clear_window()
         ttk.Label(self.root, text="View All Courses", font=("Arial", 16)).pack(pady=20)
-        query = """
-            SELECT c.course_id, c.title, c.credit_hours, u.name as instructor_name, c.semester
+        query = """SELECT c.course_id, c.title, c.credit_hours, u.name as instructor_name, c.semester
             FROM Courses c
             JOIN Users u ON c.instructor_id = u.user_id
         """
@@ -1185,95 +1175,100 @@ class LMSApp:
             self.root, text="Back to Manage Courses", command=self.manage_courses
         ).pack(pady=10)
 
-    def add_course(self):
-        self.clear_window()
-        ttk.Label(self.root, text="Add Course", font=("Arial", 16)).pack(pady=20)
 
-        title_label = ttk.Label(self.root, text="Title:")
-        title_label.pack()
-        self.add_course_title_entry = ttk.Entry(self.root)
-        self.add_course_title_entry.pack(pady=5)
+def add_course(self):
+    self.clear_window()
+    ttk.Label(self.root, text="Add Course", font=("Arial", 16)).pack(pady=20)
 
-        credits_label = ttk.Label(self.root, text="Credit Hours:")
-        credits_label.pack()
-        self.add_course_credits_entry = ttk.Entry(self.root)
-        self.add_course_credits_entry.pack(pady=5)
+    course_id_label = ttk.Label(self.root, text="Course ID:")
+    course_id_label.pack()
+    self.add_course_id_entry = ttk.Entry(self.root)
+    self.add_course_id_entry.pack(pady=5)
 
-        instructor_label = ttk.Label(self.root, text="Instructor:")
-        instructor_label.pack()
-        self.add_course_instructor_var = tk.StringVar()
-        self.add_course_instructor_combobox = ttk.Combobox(
-            self.root, textvariable=self.add_course_instructor_var
-        )
-        self.populate_instructor_combobox(self.add_course_instructor_combobox)
-        self.add_course_instructor_combobox.pack(pady=5)
+    title_label = ttk.Label(self.root, text="Title:")
+    title_label.pack()
+    self.add_course_title_entry = ttk.Entry(self.root)
+    self.add_course_title_entry.pack(pady=5)
 
-        semester_label = ttk.Label(self.root, text="Semester:")
-        semester_label.pack()
-        self.add_course_semester_entry = ttk.Entry(self.root)
-        self.add_course_semester_entry.pack(pady=5)
+    credit_hours_label = ttk.Label(self.root, text="Credit Hours:")
+    credit_hours_label.pack()
+    self.add_course_credit_hours_entry = ttk.Entry(self.root)
+    self.add_course_credit_hours_entry.pack(pady=5)
 
-        def add_course_to_db():
-            title = self.add_course_title_entry.get()
-            credits = self.add_course_credits_entry.get()
-            instructor_name = self.add_course_instructor_var.get()
-            semester = self.add_course_semester_entry.get()
+    instructor_label = ttk.Label(self.root, text="Instructor:")
+    instructor_label.pack()
+    self.add_course_instructor_var = tk.StringVar()
+    self.add_course_instructor_combobox = ttk.Combobox(
+        self.root, textvariable=self.add_course_instructor_var
+    )
+    self.populate_instructor_dropdown()  # Populate the dropdown
+    self.add_course_instructor_combobox.pack(pady=5)
 
-            if title and credits and instructor_name and semester:
-                try:
-                    credits = int(credits)
-                    if not (1 <= credits <= 4):
-                        messagebox.showerror(
-                            "Add Course Error", "Credit hours must be between 1 and 4."
-                        )
-                        return
-                    query = "SELECT user_id FROM Users WHERE name = %s"
-                    self.cursor.execute(query, (instructor_name,))
-                    instructor_id_result = self.cursor.fetchone()
-                    if instructor_id_result:
-                        instructor_id = instructor_id_result[0]
-                        query = "INSERT INTO Courses (title, credit_hours, instructor_id, semester) VALUES (%s, %s, %s, %s)"
-                        params = (title, credits, instructor_id, semester)
-                        if execute_query(self.conn, self.cursor, query, params):
-                            messagebox.showinfo(
-                                "Add Course", "Course added successfully."
-                            )
-                            self.manage_courses()
-                        else:
-                            messagebox.showerror(
-                                "Add Course Error", "Failed to add course."
-                            )
-                    else:
-                        messagebox.showerror(
-                            "Add Course Error",
-                            "Instructor not found. Please select a valid instructor.",
-                        )
-                except ValueError:
-                    messagebox.showerror(
-                        "Add Course Error", "Credit hours must be a number."
-                    )
-            else:
-                messagebox.showerror("Add Course Error", "All fields are required.")
+    semester_label = ttk.Label(self.root, text="Semester:")
+    semester_label.pack()
+    self.add_course_semester_entry = ttk.Entry(self.root)
+    self.add_course_semester_entry.pack(pady=5)
 
-        add_button = ttk.Button(self.root, text="Add Course", command=add_course_to_db)
-        add_button.pack(pady=10)
-        back_button = ttk.Button(
-            self.root, text="Back to Manage Courses", command=self.manage_courses
-        )
-        back_button.pack(pady=10)
-
-    def populate_instructor_combobox(self, combobox):
-        """Populate the instructor combobox with instructor names."""
+    def populate_instructor_dropdown():
         query = "SELECT user_id, name FROM Users WHERE role = 'instructor'"
         instructors = execute_query(self.conn, self.cursor, query, fetch=True)
         if instructors:
-            self.instructor_map = {
-                f"{name} (ID: {uid})": uid for uid, name in instructors
-            }
-            combobox["values"] = list(self.instructor_map.keys())
+            instructor_list = [f"{name} ({user_id})" for user_id, name in instructors]
+            self.add_course_instructor_combobox["values"] = instructor_list
         else:
-            self.instructor_map = {}
-            self.edit_course_instructor_combobox["values"] = []
+            self.add_course_instructor_combobox["values"] = []
+
+    def add_course_to_db():
+        course_id = self.add_course_id_entry.get()
+        title = self.add_course_title_entry.get()
+        credit_hours = self.add_course_credit_hours_entry.get()
+        selected_instructor = self.add_course_instructor_var.get()
+        semester = self.add_course_semester_entry.get()
+
+        if course_id and title and credit_hours and selected_instructor and semester:
+            try:
+                credit_hours = int(credit_hours)
+                if not (1 <= credit_hours <= 4):
+                    messagebox.showerror(
+                        "Add Course Error", "Credit hours must be between 1 and 4."
+                    )
+                    return
+                instructor_id = selected_instructor.split("(")[-1].split(")")[
+                    0
+                ]  # Extract instructor_id
+                # Check if the instructor_id exists (though the dropdown should prevent invalid entries)
+                query_check_instructor = "SELECT user_id FROM Users WHERE user_id = %s AND role = 'instructor'"
+                self.cursor.execute(query_check_instructor, (instructor_id,))
+                if not self.cursor.fetchone():
+                    messagebox.showerror(
+                        "Add Course Error", "Selected instructor is invalid."
+                    )
+                    return
+
+                query_insert_course = "INSERT INTO Courses (course_id, title, credit_hours, instructor_id, semester) VALUES (%s, %s, %s, %s, %s)"
+                params = (course_id, title, credit_hours, instructor_id, semester)
+                if execute_query(self.conn, self.cursor, query_insert_course, params):
+                    messagebox.showinfo("Add Course", "Course added successfully.")
+                    self.manage_courses()
+                else:
+                    messagebox.showerror("Add Course Error", "Failed to add course.")
+            except ValueError:
+                messagebox.showerror(
+                    "Add Course Error", "Invalid input for credit hours."
+                )
+                return
+        else:
+            messagebox.showerror("Add Course Error", "All fields are required.")
+
+    add_button = ttk.Button(self.root, text="Add Course", command=add_course_to_db)
+    add_button.pack(pady=10)
+    back_button = ttk.Button(
+        self.root, text="Back to Manage Courses", command=self.manage_courses
+    )
+    back_button.pack(pady=10)
+
+    # Call this here to ensure the dropdown is populated when the form is shown
+    populate_instructor_dropdown()
 
     def get_course_id(self):
         try:
@@ -1474,8 +1469,7 @@ class LMSApp:
         ttk.Label(self.root, text="View Rechecking Requests", font=("Arial", 16)).pack(
             pady=20
         )
-        query = """
-            SELECT r.recheck_id, u.name, c.title, r.exam_type, r.reason, r.status, r.created_at
+        query = """SELECT r.recheck_id, u.name, c.title, r.exam_type, r.reason, r.status, r.created_at
             FROM rechecking r
             JOIN Users u ON r.sender_id = u.user_id
             JOIN Courses c ON r.course_id = c.course_id
