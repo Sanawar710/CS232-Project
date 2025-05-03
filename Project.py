@@ -500,6 +500,11 @@ class LMSApp:
             )
             menu_label.pack(pady=20)
 
+            add_marks_button = ttk.Button(
+                self.root, text="Add Marks", command=self.add_marks
+            )
+            add_marks_button.pack(pady=10)
+
             ttk.Button(
                 self.root, text="Apply Grading", command=self.show_grading_options
             ).pack(pady=5)
@@ -1438,6 +1443,92 @@ class LMSApp:
         semester_label = ttk.Label(self.root, text="Semester:")
         semester_label.pack()
 
+        def add_marks(self):
+            self.clear_window()
+            ttk.Label(self.root, text="Add Marks", font=("Arial", 16)).pack(pady=20)
+
+            course_label = ttk.Label(self.root, text="Course:")
+            course_label.pack()
+            self.add_marks_course_var = tk.StringVar()
+            self.add_marks_course_combobox = ttk.Combobox(
+                self.root, textvariable=self.add_marks_course_var
+            )
+            self.populate_course_combobox(self.add_marks_course_combobox)
+            self.add_marks_course_combobox.pack(pady=5)
+
+            student_label = ttk.Label(self.root, text="Student ID:")
+            student_label.pack()
+            self.add_marks_student_entry = ttk.Entry(self.root)
+            self.add_marks_student_entry.pack(pady=5)
+
+            quiz1_label = ttk.Label(self.root, text="Quiz 1 Marks:")
+            quiz1_label.pack()
+            self.add_marks_quiz1_entry = ttk.Entry(self.root)
+            self.add_marks_quiz1_entry.pack(pady=5)
+
+            quiz2_label = ttk.Label(self.root, text="Quiz 2 Marks:")
+            quiz2_label.pack()
+            self.add_marks_quiz2_entry = ttk.Entry(self.root)
+            self.add_marks_quiz2_entry.pack(pady=5)
+
+            midterm_label = ttk.Label(self.root, text="Midterm Marks:")
+            midterm_label.pack()
+            self.add_marks_midterm_entry = ttk.Entry(self.root)
+            self.add_marks_midterm_entry.pack(pady=5)
+
+            final_label = ttk.Label(self.root, text="Final Marks:")
+            final_label.pack()
+            self.add_marks_final_entry = ttk.Entry(self.root)
+            self.add_marks_final_entry.pack(pady=5)
+
+        def submit_marks():
+            course_id = self.add_marks_course_var.get().split("(")[-1].split(")")[0]
+            student_id = self.add_marks_student_entry.get()
+            quiz1 = self.add_marks_quiz1_entry.get()
+            quiz2 = self.add_marks_quiz2_entry.get()
+            midterm = self.add_marks_midterm_entry.get()
+            final = self.add_marks_final_entry.get()
+
+            if not (course_id and student_id and quiz1 and quiz2 and midterm and final):
+                messagebox.showerror("Error", "All fields are required.")
+                return
+
+            try:
+                quiz1 = float(quiz1)
+                quiz2 = float(quiz2)
+                midterm = float(midterm)
+                final = float(final)
+                total_marks = quiz1 + quiz2 + midterm + final
+
+                query = """INSERT INTO Results (user_id, course_id, quiz1, quiz2, midterm, final, total_marks)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s)
+                           ON CONFLICT (user_id, course_id) DO UPDATE
+                           SET quiz1 = EXCLUDED.quiz1, quiz2 = EXCLUDED.quiz2, midterm = EXCLUDED.midterm,
+                               final = EXCLUDED.final, total_marks = EXCLUDED.total_marks"""
+                params = (
+                    student_id,
+                    course_id,
+                    quiz1,
+                    quiz2,
+                    midterm,
+                    final,
+                    total_marks,
+                )
+                if execute_query(self.conn, self.cursor, query, params):
+                    messagebox.showinfo("Success", "Marks added successfully.")
+                    self.show_user_menu()
+                else:
+                    messagebox.showerror("Error", "Failed to add marks.")
+            except ValueError:
+                messagebox.showerror("Error", "Marks must be numeric values.")
+
+        submit_button = ttk.Button(self.root, text="Submit Marks", command=submit_marks)
+        submit_button.pack(pady=10)
+        back_button = ttk.Button(
+            self.root, text="Back to Menu", command=self.show_user_menu
+        )
+        back_button.pack(pady=10)
+
     def delete_course(self):
         self.clear_window()
         ttk.Label(self.root, text="Delete Course", font=("Arial", 16)).pack(pady=20)
@@ -1534,8 +1625,7 @@ class LMSApp:
 
         # Call this here to ensure the dropdown is populated when the form is shown
         self.populate_instructor_dropdown(self.add_course_instructor_combobox)
-    
-    
+
     def get_course_id(self):
         try:
             return int(self.edit_course_id_entry.get())
@@ -1758,3 +1848,4 @@ if __name__ == "__main__":
     app = LMSApp(root)
     root.mainloop()
     root.destroy()
+    app.close_connection()  # Close the database connection when the app is closed
