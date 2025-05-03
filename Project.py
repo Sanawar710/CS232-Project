@@ -203,7 +203,7 @@ class LMSApp:
         execute_query(self.conn, self.cursor, admin_script)
 
         courses_script = """CREATE TABLE IF NOT EXISTS Courses (
-            course_id TEXT PRIMARY KEY NOT NULL,
+            course_id SERIAL PRIMARY KEY NOT NULL,
             title VARCHAR(100) NOT NULL,
             credit_hours INT NOT NULL CHECK (credit_hours BETWEEN 1 AND 4),
             instructor_id INT,
@@ -213,7 +213,7 @@ class LMSApp:
         execute_query(self.conn, self.cursor, courses_script)
 
         course_prerequisite_script = """CREATE TABLE IF NOT EXISTS CoursePrerequisites (
-            course_id TEXT NOT NULL,
+            course_id INT NOT NULL,
             prerequisite_id INT NOT NULL,
             PRIMARY KEY (course_id, prerequisite_id),
             FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE,
@@ -239,7 +239,7 @@ class LMSApp:
         result_script = """CREATE TABLE IF NOT EXISTS Results (
             result_id SERIAL PRIMARY KEY,
             user_id INT NOT NULL,
-            course_id TEXT NOT NULL,
+            course_id INT NOT NULL,
             quiz1 FLOAT DEFAULT 0,
             quiz2 FLOAT DEFAULT 0,
             midterm FLOAT DEFAULT 0,
@@ -254,7 +254,7 @@ class LMSApp:
         attendance_script = """CREATE TABLE IF NOT EXISTS Attendance (
             attendance_id SERIAL PRIMARY KEY,
             user_id INT NOT NULL,
-            course_id TEXT NOT NULL,
+            course_id INT NOT NULL,
             date DATE NOT NULL,
             status VARCHAR(10) CHECK (status IN ('present', 'absent', 'late')) NOT NULL,
             FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
@@ -287,7 +287,7 @@ class LMSApp:
         rechecking_script = """CREATE TABLE IF NOT EXISTS rechecking (
             recheck_id SERIAL PRIMARY KEY,
             sender_id INT NOT NULL,
-            course_id TEXT NOT NULL,
+            course_id INT NOT NULL,
             reason TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             exam_type VARCHAR(10) CHECK (exam_type IN ('quiz', 'mid term', 'final')) NOT NULL,
@@ -308,7 +308,7 @@ class LMSApp:
         feedback_script = """CREATE TABLE IF NOT EXISTS feedback (
             feedback_id SERIAL PRIMARY KEY,
             sender_id INT,
-            course_id TEXT NOT NULL,
+            course_id INT NOT NULL,
             instructor_id INT,
             rating INT CHECK (rating BETWEEN 1 AND 5),
             comments TEXT,
@@ -618,11 +618,27 @@ class LMSApp:
             )
             return
 
-        # Insert new user into the database
-        insert_user_query = (
-            "INSERT INTO Users (name, email, password, role) VALUES (%s, %s, %s, %s)"
-        )
+        # Insert new user into the appropriate table based on role
         try:
+            if role == "student":
+                insert_user_query = """
+                    INSERT INTO Students (name, email, password, role, program, semester)
+                    VALUES (%s, %s, %s, %s, NULL, NULL)
+                """
+            elif role == "instructor":
+                insert_user_query = """
+                    INSERT INTO Instructors (name, email, password, role, department, designation)
+                    VALUES (%s, %s, %s, %s, NULL, NULL)
+                """
+            elif role == "admin":
+                insert_user_query = """
+                    INSERT INTO Admins (name, email, password, role, role_description)
+                    VALUES (%s, %s, %s, %s, NULL)
+                """
+            else:
+                messagebox.showerror("Registration Error", "Invalid role selected.")
+                return
+
             self.cursor.execute(insert_user_query, (name, email, password, role))
             self.conn.commit()
             messagebox.showinfo(
@@ -643,21 +659,60 @@ class LMSApp:
             grading_window, text="Choose Grading Method:", font=("Arial", 12)
         ).pack(pady=10)
 
+    def apply_grading_and_save(self, grading_function):
+        file_path = tk.filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv")],
+            title="Save Graded Results As",
+        )
+        if not file_path:
+            messagebox.showerror("Error", "File path not provided.")
+            return
+
+        grading_function(self.conn, self.cursor)
+        query = "SELECT * FROM Results;"
+        results = execute_query(self.conn, self.cursor, query, fetch=True)
+        if results:
+            columns = [desc[0] for desc in self.cursor.description]
+            df = pd.DataFrame(results, columns=columns)
+            df.to_csv(file_path, index=False)
+            messagebox.showinfo("Grading", f"Grading applied and saved to {file_path}.")
+            plot_percentage_distribution(self.conn, self.cursor)
+
+        grading_window = tk.Toplevel(self.root)
+        grading_window.title("Apply Grading")
+
+    def apply_grading_and_save(self, grading_function):
+        file_path = tk.filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv")],
+            title="Save Graded Results As",
+        )
+        if not file_path:
+            messagebox.showerror("Error", "File path not provided.")
+            return
+
+        grading_function(self.conn, self.cursor)
+        query = "SELECT * FROM Results;"
+        results = execute_query(self.conn, self.cursor, query, fetch=True)
+        if results:
+            columns = [desc[0] for desc in self.cursor.description]
+            df = pd.DataFrame(results, columns=columns)
+            df.to_csv(file_path, index=False)
+            messagebox.showinfo("Grading", f"Grading applied and saved to {file_path}.")
+            plot_percentage_distribution(self.conn, self.cursor)
+        grading_window = tk.Toplevel(self.root)
+        grading_window.title("Apply Grading")
+
         ttk.Button(
             grading_window,
             text="Absolute Grading",
-            command=lambda: [
-                absolute_grading(self.conn, self.cursor),
-                grading_window.destroy(),
-            ],
+            command=lambda: self.apply_grading_and_save(absolute_grading),
         ).pack(pady=5)
         ttk.Button(
             grading_window,
             text="Relative Grading",
-            command=lambda: [
-                relative_grading(self.conn, self.cursor),
-                grading_window.destroy(),
-            ],
+            command=lambda: self.apply_grading_and_save(relative_grading),
         ).pack(pady=5)
 
     def view_courses(self):
@@ -778,11 +833,6 @@ class LMSApp:
                 messagebox.showinfo(
                     "Rechecking Request", "Your request has been submitted."
                 )
-                submit_button = ttk.Button(
-                    self.root,
-                    text="Submit Request",
-                    command=self.submit_recheck_request,
-                ).pack(pady=10)
                 messagebox.showerror("Rechecking Request", "Failed to submit request.")
         else:
             messagebox.showerror("Rechecking Request", "Please fill in all fields.")
@@ -906,18 +956,23 @@ class LMSApp:
         role_label = ttk.Label(self.root, text="Role:")
         role_label.pack()
         self.add_role_var = tk.StringVar(value="student")
+        role_frame = ttk.Frame(self.root)
+        role_frame.pack(pady=5)
         student_radio = ttk.Radiobutton(
-            self.root, text="Student", variable=self.add_role_var, value="student"
+            role_frame, text="Student", variable=self.add_role_var, value="student"
         )
         instructor_radio = ttk.Radiobutton(
-            self.root, text="Instructor", variable=self.add_role_var, value="instructor"
+            role_frame,
+            text="Instructor",
+            variable=self.add_role_var,
+            value="instructor",
         )
         admin_radio = ttk.Radiobutton(
-            self.root, text="Admin", variable=self.add_role_var, value="admin"
+            role_frame, text="Admin", variable=self.add_role_var, value="admin"
         )
-        student_radio.pack(anchor=tk.W)
-        instructor_radio.pack(anchor=tk.W)
-        admin_radio.pack(anchor=tk.W)
+        student_radio.pack(side=tk.LEFT, padx=10)
+        instructor_radio.pack(side=tk.LEFT, padx=10)
+        admin_radio.pack(side=tk.LEFT, padx=10)
 
         def add_user_to_db():
             name = self.add_name_entry.get()
@@ -1199,11 +1254,24 @@ class LMSApp:
             self.instructor_map = {}
             self.edit_course_instructor_combobox["values"] = []
 
+    def get_course_id(self):
+        try:
+            return int(self.edit_course_id_entry.get())
+        except ValueError:
+            messagebox.showerror("Error", "Course ID must be an integer.")
+            messagebox.showerror(
+                "Error", "Invalid Course ID. Please enter a valid integer."
+            )
+        return None
+
     def edit_course(self):
         self.clear_window()
         ttk.Label(self.root, text="Edit Course", font=("Arial", 16)).pack(pady=20)
 
         course_id_label = ttk.Label(self.root, text="Course ID to Edit:")
+        self.edit_course_id_entry = ttk.Entry(self.root)
+        self.edit_course_id_entry.pack(pady=5)
+
         course_id_label.pack()
         self.edit_course_id_entry = ttk.Entry(self.root)
         self.edit_course_id_entry.pack(pady=5)
@@ -1225,8 +1293,6 @@ class LMSApp:
             self.root, textvariable=self.edit_course_instructor_var
         )
         self.populate_instructor_combobox(self.edit_course_instructor_combobox)
-        self.edit_course_instructor_combobox.pack(pady=5)
-        
         self.edit_course_instructor_combobox.pack(pady=5)
 
         semester_label = ttk.Label(self.root, text="New Semester:")
