@@ -480,7 +480,7 @@ class LMSApp:
             ttk.Button(
                 self.root,
                 text="View Rechecking Requests",
-                command=self.view_rechecking_requests,
+                command=lambda: self.view_rechecking_requests(),
             ).pack(pady=5)
             ttk.Button(
                 self.root,
@@ -1149,10 +1149,12 @@ class LMSApp:
             pady=5
         )
         ttk.Button(self.root, text="Add Course", command=self.add_course).pack(pady=5)
-        ttk.Button(self.root, text="Edit Course", command=self.edit_course).pack(pady=5)
-        ttk.Button(self.root, text="Delete Course", command=self.delete_course).pack(
-            pady=5
-        )
+        ttk.Button(
+            self.root, text="Edit Course", command=lambda: self.edit_course()
+        ).pack(pady=5)
+        ttk.Button(
+            self.root, text="Delete Course", command=lambda: self.delete_course()
+        ).pack(pady=5)
         ttk.Button(self.root, text="Back to Menu", command=self.show_user_menu).pack(
             pady=10
         )
@@ -1172,44 +1174,52 @@ class LMSApp:
         else:
             ttk.Label(self.root, text="No courses found.").pack(pady=10)
         ttk.Button(
-            self.root, text="Back to Manage Courses", command=self.manage_courses
+            ttk.Button(
+                self.root, text="Back to Manage Courses", command=self.manage_courses
+            ).pack(pady=10)
         ).pack(pady=10)
 
+    def add_course(self):
+        self.clear_window()
+        ttk.Label(self.root, text="Add Course", font=("Arial", 16)).pack(pady=20)
 
-def add_course(self):
-    self.clear_window()
-    ttk.Label(self.root, text="Add Course", font=("Arial", 16)).pack(pady=20)
+        course_id_label = ttk.Label(self.root, text="Course ID:")
+        course_id_label.pack()
+        self.add_course_id_entry = ttk.Entry(self.root)
+        self.add_course_id_entry.pack(pady=5)
 
-    course_id_label = ttk.Label(self.root, text="Course ID:")
-    course_id_label.pack()
-    self.add_course_id_entry = ttk.Entry(self.root)
-    self.add_course_id_entry.pack(pady=5)
+        title_label = ttk.Label(self.root, text="Title:")
+        title_label.pack()
+        self.add_course_title_entry = ttk.Entry(self.root)
+        self.add_course_title_entry.pack(pady=5)
 
-    title_label = ttk.Label(self.root, text="Title:")
-    title_label.pack()
-    self.add_course_title_entry = ttk.Entry(self.root)
-    self.add_course_title_entry.pack(pady=5)
+        credit_hours_label = ttk.Label(self.root, text="Credit Hours:")
+        credit_hours_label.pack()
+        self.add_course_credit_hours_entry = ttk.Entry(self.root)
+        self.add_course_credit_hours_entry.pack(pady=5)
 
-    credit_hours_label = ttk.Label(self.root, text="Credit Hours:")
-    credit_hours_label.pack()
-    self.add_course_credit_hours_entry = ttk.Entry(self.root)
-    self.add_course_credit_hours_entry.pack(pady=5)
+        instructor_label = ttk.Label(self.root, text="Instructor:")
+        instructor_label.pack()
+        self.add_course_instructor_var = tk.StringVar()
+        self.add_course_instructor_combobox = ttk.Combobox(
+            self.root, textvariable=self.add_course_instructor_var
+        )
+        self.populate_instructor_combobox(self.add_course_instructor_combobox)
+        self.add_course_instructor_combobox.pack(pady=5)
 
-    instructor_label = ttk.Label(self.root, text="Instructor:")
-    instructor_label.pack()
-    self.add_course_instructor_var = tk.StringVar()
-    self.add_course_instructor_combobox = ttk.Combobox(
-        self.root, textvariable=self.add_course_instructor_var
-    )
-    self.populate_instructor_dropdown()  # Populate the dropdown
-    self.add_course_instructor_combobox.pack(pady=5)
+        semester_label = ttk.Label(self.root, text="Semester:")
+        semester_label.pack()
+        self.add_course_semester_entry = ttk.Entry(self.root)
+        self.add_course_semester_entry.pack(pady=5)
 
-    semester_label = ttk.Label(self.root, text="Semester:")
-    semester_label.pack()
-    self.add_course_semester_entry = ttk.Entry(self.root)
-    self.add_course_semester_entry.pack(pady=5)
-
-    def populate_instructor_dropdown():
+    def populate_instructor_combobox(self, combobox):
+        query = "SELECT user_id, name FROM Users WHERE role = 'instructor'"
+        instructors = execute_query(self.conn, self.cursor, query, fetch=True)
+        if instructors:
+            instructor_list = [f"{name} ({user_id})" for user_id, name in instructors]
+            combobox["values"] = instructor_list
+        else:
+            combobox["values"] = []
         query = "SELECT user_id, name FROM Users WHERE role = 'instructor'"
         instructors = execute_query(self.conn, self.cursor, query, fetch=True)
         if instructors:
@@ -1218,7 +1228,260 @@ def add_course(self):
         else:
             self.add_course_instructor_combobox["values"] = []
 
-    def add_course_to_db():
+    def add_course_to_db(self):
+        course_id = self.add_course_id_entry.get()
+        title = self.add_course_title_entry.get()
+        credit_hours = self.add_course_credit_hours_entry.get()
+        selected_instructor = self.add_course_instructor_var.get()
+        semester = self.add_course_semester_entry.get()
+
+        if course_id and title and credit_hours and selected_instructor and semester:
+            try:
+                credit_hours = int(credit_hours)
+                if not (1 <= credit_hours <= 4):
+                    messagebox.showerror(
+                        "Add Course Error", "Credit hours must be between 1 and 4."
+                    )
+                    return
+                instructor_id = selected_instructor.split("(")[-1].split(")")[0]
+                query_check_instructor = "SELECT user_id FROM Users WHERE user_id = %s AND role = 'instructor'"
+                self.cursor.execute(query_check_instructor, (instructor_id,))
+                if not self.cursor.fetchone():
+                    messagebox.showerror(
+                        "Add Course Error", "Selected instructor is invalid."
+                    )
+                    return
+
+                query_insert_course = """INSERT INTO Courses (course_id, title, credit_hours, instructor_id, semester) VALUES (%s, %s, %s, %s, %s)"""
+                params = (course_id, title, credit_hours, instructor_id, semester)
+                if execute_query(self.conn, self.cursor, query_insert_course, params):
+                    messagebox.showinfo("Add Course", "Course added successfully.")
+                    self.manage_courses()
+                else:
+                    messagebox.showerror("Add Course Error", "Failed to add course.")
+            except ValueError:
+                messagebox.showerror(
+                    "Add Course Error", "Invalid input for credit hours."
+                )
+                return
+        else:
+            messagebox.showerror("Add Course Error", "All fields are required.")
+
+    def add_course(self):
+        self.clear_window()
+        ttk.Label(self.root, text="Add Course", font=("Arial", 16)).pack(pady=20)
+
+        course_id_label = ttk.Label(self.root, text="Course ID:")
+        course_id_label.pack()
+        self.add_course_id_entry = ttk.Entry(self.root)
+        self.add_course_id_entry.pack(pady=5)
+
+        title_label = ttk.Label(self.root, text="Title:")
+        title_label.pack()
+        self.add_course_title_entry = ttk.Entry(self.root)
+        self.add_course_title_entry.pack(pady=5)
+
+        credit_hours_label = ttk.Label(self.root, text="Credit Hours:")
+        credit_hours_label.pack()
+        self.add_course_credit_hours_entry = ttk.Entry(self.root)
+        self.add_course_credit_hours_entry.pack(pady=5)
+
+        instructor_label = ttk.Label(self.root, text="Instructor:")
+        instructor_label.pack()
+        self.add_course_instructor_var = tk.StringVar()
+        self.add_course_instructor_combobox = ttk.Combobox(
+            self.root, textvariable=self.add_course_instructor_var
+        )
+        self.populate_instructor_dropdown()
+        self.add_course_instructor_combobox.pack(pady=5)
+
+        semester_label = ttk.Label(self.root, text="Semester:")
+        semester_label.pack()
+        self.add_course_semester_entry = ttk.Entry(self.root)
+        self.add_course_semester_entry.pack(pady=5)
+
+        add_button = ttk.Button(
+            self.root, text="Add Course", command=self.add_course_to_db
+        )
+        add_button.pack(pady=10)
+        back_button = ttk.Button(
+            self.root, text="Back to Manage Courses", command=self.manage_courses
+        )
+
+        back_button.pack(pady=10)
+        credit_hours_label.pack()
+
+    def edit_course(self):
+        self.clear_window()
+        ttk.Label(self.root, text="Edit Course", font=("Arial", 16)).pack(pady=20)
+
+        course_id_label = ttk.Label(self.root, text="Course ID to Edit:")
+        course_id_label.pack()
+        self.edit_course_id_entry = ttk.Entry(self.root)
+        self.edit_course_id_entry.pack(pady=5)
+
+        title_label = ttk.Label(self.root, text="New Title:")
+        title_label.pack()
+        self.edit_course_title_entry = ttk.Entry(self.root)
+        self.edit_course_title_entry.pack(pady=5)
+
+        credits_label = ttk.Label(self.root, text="New Credit Hours:")
+        credits_label.pack()
+        self.edit_course_credits_entry = ttk.Entry(self.root)
+        self.edit_course_credits_entry.pack(pady=5)
+
+        instructor_label = ttk.Label(self.root, text="New Instructor:")
+        instructor_label.pack()
+        self.edit_course_instructor_var = tk.StringVar()
+        self.edit_course_instructor_combobox = ttk.Combobox(
+            self.root, textvariable=self.edit_course_instructor_var
+        )
+        self.populate_instructor_combobox(self.edit_course_instructor_combobox)
+        self.edit_course_instructor_combobox.pack(pady=5)
+
+        semester_label = ttk.Label(self.root, text="New Semester:")
+        semester_label.pack()
+        self.edit_course_semester_entry = ttk.Entry(self.root)
+        self.edit_course_semester_entry.pack(pady=5)
+
+        def update_course_in_db():
+            course_id = self.edit_course_id_entry.get()
+            title = self.edit_course_title_entry.get()
+            credits = self.edit_course_credits_entry.get()
+            instructor_name = self.edit_course_instructor_var.get()
+            semester = self.edit_course_semester_entry.get()
+
+            if course_id:
+                update_fields = {}
+                update_values = []
+                if title:
+                    update_fields["title"] = title
+                    update_values.append(title)
+                if credits:
+                    try:
+                        credits = int(credits)
+                        if not (1 <= credits <= 4):
+                            messagebox.showerror(
+                                "Edit Course Error",
+                                "Credit hours must be between 1 and 4.",
+                            )
+                            return
+                        update_fields["credit_hours"] = credits
+                        update_values.append(credits)
+                    except ValueError:
+                        messagebox.showerror(
+                            "Edit Course Error", "Credit hours must be a number."
+                        )
+                        return
+                if instructor_name:
+                    query = "SELECT user_id FROM Users WHERE name = %s"
+                    self.cursor.execute(query, (instructor_name,))
+                    instructor_id_result = self.cursor.fetchone()
+                    if instructor_id_result:
+                        instructor_id = instructor_id_result[0]
+                        update_fields["instructor_id"] = instructor_id
+                        update_values.append(instructor_id)
+                    else:
+                        messagebox.showerror(
+                            "Edit Course Error",
+                            "Instructor not found. Please select a valid instructor.",
+                        )
+                        return
+                if semester:
+                    update_fields["semester"] = semester
+                    update_values.append(semester)
+
+                if update_fields:
+                    columns = list(update_fields.keys())
+                    values = update_values
+                    if update_record(
+                        self.conn,
+                        self.cursor,
+                        "Courses",
+                        columns,
+                        values,
+                        "course_id",
+                        course_id,
+                    ):
+                        messagebox.showinfo(
+                            "Edit Course", "Course updated successfully."
+                        )
+                        self.manage_courses()
+                    else:
+                        messagebox.showerror(
+                            "Edit Course Error", "Failed to update course."
+                        )
+                else:
+                    messagebox.showinfo("Edit Course", "No fields to update.")
+            else:
+                messagebox.showerror("Edit Course Error", "Course ID is required.")
+
+        update_button = ttk.Button(
+            self.root, text="Update Course", command=update_course_in_db
+        )
+        update_button.pack(pady=10)
+        back_button = ttk.Button(
+            self.root, text="Back to Manage Courses", command=self.manage_courses
+        )
+        back_button.pack(pady=10)
+        self.add_course_credit_hours_entry.pack(pady=5)
+
+        instructor_label = ttk.Label(self.root, text="Instructor:")
+        instructor_label.pack()
+        self.add_course_instructor_var = tk.StringVar()
+        self.add_course_instructor_combobox = ttk.Combobox(
+            self.root, textvariable=self.add_course_instructor_var
+        )
+        self.populate_instructor_dropdown()  # Populate the dropdown
+        self.add_course_instructor_combobox.pack(pady=5)
+
+        semester_label = ttk.Label(self.root, text="Semester:")
+        semester_label.pack()
+
+    def delete_course(self):
+        self.clear_window()
+        ttk.Label(self.root, text="Delete Course", font=("Arial", 16)).pack(pady=20)
+
+        course_id_label = ttk.Label(self.root, text="Course ID to Delete:")
+        course_id_label.pack()
+        self.delete_course_id_entry = ttk.Entry(self.root)
+        self.delete_course_id_entry.pack(pady=5)
+
+        def delete_course_from_db():
+            course_id = self.delete_course_id_entry.get()
+            if course_id:
+                if delete_record(
+                    self.conn, self.cursor, "Courses", "course_id", course_id
+                ):
+                    messagebox.showinfo("Delete Course", "Course deleted successfully.")
+                    self.manage_courses()
+                else:
+                    messagebox.showerror(
+                        "Delete Course Error", "Failed to delete course."
+                    )
+            else:
+                messagebox.showerror("Delete Course Error", "Course ID is required.")
+
+        delete_button = ttk.Button(
+            self.root, text="Delete Course", command=delete_course_from_db
+        )
+        delete_button.pack(pady=10)
+        back_button = ttk.Button(
+            self.root, text="Back to Manage Courses", command=self.manage_courses
+        )
+        back_button.pack(pady=10)
+        self.add_course_semester_entry.pack(pady=5)
+
+    def populate_instructor_dropdown(self):
+        query = "SELECT user_id, name FROM Users WHERE role = 'instructor'"
+        instructors = execute_query(self.conn, self.cursor, query, fetch=True)
+        if instructors:
+            instructor_list = [f"{name} ({user_id})" for user_id, name in instructors]
+            self.add_course_instructor_combobox["values"] = instructor_list
+        else:
+            self.add_course_instructor_combobox["values"] = []
+
+    def add_course_to_db(self):
         course_id = self.add_course_id_entry.get()
         title = self.add_course_title_entry.get()
         credit_hours = self.add_course_credit_hours_entry.get()
@@ -1260,12 +1523,14 @@ def add_course(self):
         else:
             messagebox.showerror("Add Course Error", "All fields are required.")
 
-    add_button = ttk.Button(self.root, text="Add Course", command=add_course_to_db)
-    add_button.pack(pady=10)
-    back_button = ttk.Button(
-        self.root, text="Back to Manage Courses", command=self.manage_courses
-    )
-    back_button.pack(pady=10)
+        add_button = ttk.Button(
+            self.root, text="Add Course", command=self.add_course_to_db
+        )
+        add_button.pack(pady=10)
+        back_button = ttk.Button(
+            self.root, text="Back to Manage Courses", command=self.manage_courses
+        )
+        back_button.pack(pady=10)
 
     # Call this here to ensure the dropdown is populated when the form is shown
     populate_instructor_dropdown()
