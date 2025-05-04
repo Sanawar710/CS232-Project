@@ -346,15 +346,28 @@ class LMSApp:
         """
         execute_query(self.conn, self.cursor, update_rechecking_status_script)
 
-        discussion_script = """CREATE TABLE DiscussionThreads (
+        discussion_script = """CREATE TABLE IF NOT EXISTS DiscussionThreads (
             thread_id SERIAL PRIMARY KEY,
-            mesage TEXT NOT NULL,
+            course_id INT NOT NULL,
+            instructor_id INT NOT NULL,
+            message TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'deleted', 'locked', 'archived')),
             FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE,
             FOREIGN KEY (instructor_id) REFERENCES Users(user_id) ON DELETE CASCADE
         );"""
         execute_query(self.conn, self.cursor, discussion_script)
+
+        reply_script = """CREATE TABLE IF NOT EXISTS DiscussionReplies (
+            reply_id SERIAL PRIMARY KEY,
+            thread_id INT NOT NULL,
+            sender_id INT,
+            message TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (thread_id) REFERENCES DiscussionThreads(thread_id) ON DELETE CASCADE,
+            FOREIGN KEY (sender_id) REFERENCES Users(user_id) ON DELETE CASCADE
+        );"""
+        execute_query(self.conn, self.cursor, reply_script)
 
     def clear_window(self):
         for widget in self.root.winfo_children():
@@ -453,7 +466,7 @@ class LMSApp:
     def show_user_menu(self):
         self.clear_window()
 
-        if self.role.strip().lower() == "student":  # Normalize and compare
+        if self.role.strip().lower() == "student":
             menu_label = ttk.Label(self.root, text="Student's Menu", font=("Arial", 16))
             menu_label.pack(pady=20)
             ttk.Button(self.root, text="View Courses", command=self.view_courses).pack(
@@ -474,6 +487,16 @@ class LMSApp:
             ttk.Button(
                 self.root, text="Give Feedback", command=self.give_feedback
             ).pack(pady=5)
+            ttk.Button(
+                self.root,
+                text="View Discussion Threads",
+                command=self.view_discussion_threads,
+            ).pack(pady=5)
+            ttk.Button(
+                self.root,
+                text="Reply to Discussion Thread",
+                command=self.reply_to_thread,
+            ).pack(pady=5)
             ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(
                 pady=5
             )
@@ -481,7 +504,7 @@ class LMSApp:
                 pady=10
             )
 
-        elif self.role.strip().lower() == "admin":  # Normalize and compare
+        elif self.role.strip().lower() == "admin":
             menu_label = ttk.Label(self.root, text="Admin Section", font=("Arial", 16))
             menu_label.pack(pady=10)
             ttk.Button(self.root, text="Manage Users", command=self.manage_users).pack(
@@ -493,7 +516,7 @@ class LMSApp:
             ttk.Button(
                 self.root,
                 text="View Rechecking Requests",
-                command=lambda: self.view_rechecking_requests(),
+                command=self.view_rechecking_requests,
             ).pack(pady=5)
             ttk.Button(
                 self.root,
@@ -515,7 +538,7 @@ class LMSApp:
                 pady=10
             )
 
-        elif self.role == "instructor":
+        elif self.role.strip().lower() == "instructor":
             menu_label = ttk.Label(
                 self.root, text="Instructor's Section", font=("Arial", 16)
             )
@@ -536,6 +559,21 @@ class LMSApp:
             ).pack(pady=5)
             ttk.Button(
                 self.root, text="View Academic Calendar", command=self.view_calendar
+            ).pack(pady=5)
+            ttk.Button(
+                self.root,
+                text="Create Discussion Thread",
+                command=self.create_discussion_thread,
+            ).pack(pady=5)
+            ttk.Button(
+                self.root,
+                text="View Discussion Threads",
+                command=self.view_discussion_threads,
+            ).pack(pady=5)
+            ttk.Button(
+                self.root,
+                text="Reply to Discussion Thread",
+                command=self.reply_to_thread,
             ).pack(pady=5)
             ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(
                 pady=5
@@ -1607,6 +1645,125 @@ class LMSApp:
         ttk.Button(self.root, text="Back to Menu", command=self.show_user_menu).pack(
             pady=5
         )
+
+    def create_discussion_thread(self):
+        self.clear_window()
+        ttk.Label(self.root, text="Create Discussion Thread", font=("Arial", 16)).pack(
+            pady=10
+        )
+
+        ttk.Label(self.root, text="Course ID:").pack()
+        self.course_id_var = tk.StringVar()
+        ttk.Entry(self.root, textvariable=self.course_id_var).pack(pady=5)
+
+        ttk.Label(self.root, text="Message:").pack()
+        self.message_text = tk.Text(self.root, height=5, width=40)
+        self.message_text.pack(pady=5)
+
+        ttk.Button(
+            self.root, text="Post Thread", command=self.submit_discussion_thread
+        ).pack(pady=10)
+        ttk.Button(self.root, text="Back to Menu", command=self.show_user_menu).pack()
+
+    def submit_discussion_thread(self):
+        try:
+            course_id = int(self.course_id_var.get())
+        except ValueError:
+            messagebox.showerror("Input Error", "Course ID must be an integer.")
+            return
+
+        message = self.message_text.get("1.0", tk.END).strip()
+
+        if not course_id or not message:
+            messagebox.showerror("Input Error", "Please fill in all fields.")
+            return
+
+        query = """INSERT INTO DiscussionThreads (course_id, instructor_id, message)
+               VALUES (%s, %s, %s)"""
+        params = (course_id, self.user_id, message)
+        if execute_query(self.conn, self.cursor, query, params):
+            messagebox.showinfo("Success", "Discussion thread posted.")
+            self.show_user_menu()
+        else:
+            messagebox.showerror("Database Error", "Failed to post thread.")
+
+    def view_discussion_threads(self):
+        self.clear_window()
+        ttk.Label(self.root, text="Discussion Threads", font=("Arial", 16)).pack(
+            pady=10
+        )
+
+        query = """SELECT d.thread_id, c.title, u.name, d.message, d.status, d.created_at
+               FROM DiscussionThreads d
+               JOIN Courses c ON d.course_id = c.course_id
+               JOIN Users u ON d.instructor_id = u.user_id
+               WHERE d.status = 'active' ORDER BY d.created_at DESC"""
+        threads = execute_query(self.conn, self.cursor, query, fetch=True)
+
+        if threads:
+            for t in threads:
+                info = f"ID: {t[0]} | Course: {t[1]} | Instructor: {t[2]}\nMessage: {t[3]}\nStatus: {t[4]} | Date: {t[5]}"
+                ttk.Label(self.root, text=info, justify="left").pack(
+                    anchor="w", padx=10, pady=5
+                )
+        else:
+            ttk.Label(self.root, text="No active threads found.").pack(pady=10)
+
+        ttk.Button(self.root, text="Back to Menu", command=self.show_user_menu).pack(
+            pady=10
+        )
+
+    def reply_to_thread(self):
+        self.clear_window()
+        ttk.Label(self.root, text="Reply to a Thread", font=("Arial", 16)).pack(pady=10)
+
+        ttk.Label(self.root, text="Thread ID:").pack()
+        thread_id_entry = ttk.Entry(self.root)
+        thread_id_entry.pack()
+
+        ttk.Label(self.root, text="Your Message:").pack()
+        message_entry = tk.Text(self.root, height=5, width=50)
+        message_entry.pack()
+
+        def submit_reply():
+            thread_id = thread_id_entry.get()
+            message = message_entry.get("1.0", tk.END).strip()
+            if thread_id and message:
+                query = """INSERT INTO DiscussionReplies (thread_id, sender_id, message)
+                VALUES (%s, %s, %s)"""
+                execute_query(
+                    self.conn, self.cursor, query, (thread_id, self.user_id, message)
+                )
+                messagebox.showinfo("Success", "Reply posted.")
+                self.show_user_menu()
+            else:
+                messagebox.showerror("Error", "Thread ID and message are required.")
+
+        ttk.Button(self.root, text="Submit Reply", command=submit_reply).pack(pady=5)
+        ttk.Button(self.root, text="Back", command=self.show_user_menu).pack(pady=5)
+
+    def view_thread_replies(self, thread_id):
+        self.clear_window()
+        ttk.Label(
+            self.root, text=f"Replies for Thread ID {thread_id}", font=("Arial", 16)
+        ).pack(pady=10)
+
+        query = """SELECT reply_id, sender_id, message, created_at
+        FROM DiscussionReplies
+        WHERE thread_id = %s
+        ORDER BY created_at"""
+        replies = execute_query(self.conn, self.cursor, query, (thread_id,), fetch=True)
+
+        if replies:
+            for reply in replies:
+                reply_text = f"Reply ID: {reply[0]}, Sender: {reply[1]}, Time: {reply[3]}\n{reply[2]}"
+                ttk.Label(
+                    self.root, text=reply_text, wraplength=600, justify="left"
+                ).pack(pady=4)
+        else:
+            ttk.Label(self.root, text="No replies yet.").pack(pady=5)
+
+        ttk.Button(self.root, text="Back", command=self.show_user_menu).pack(pady=10)
 
 
 # Starting the GUI Application
