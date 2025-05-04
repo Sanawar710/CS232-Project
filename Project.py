@@ -93,21 +93,21 @@ def relative_grading(conn, cursor, course_id):
         # Count how many marks entries exist for this course
         cursor.execute(
             "SELECT COUNT(*) FROM Results WHERE course_id = %s AND total_marks IS NOT NULL;",
-            (course_id,)
+            (course_id,),
         )
         count = cursor.fetchone()[0]
 
         if count < 2:
             messagebox.showwarning(
                 "Grading Skipped",
-                "Not enough students with marks to apply relative grading (need at least 2)."
+                "Not enough students with marks to apply relative grading (need at least 2).",
             )
             return
 
         # Now calculate mean and stddev
         cursor.execute(
             "SELECT AVG(total_marks), STDDEV(total_marks) FROM Results WHERE course_id = %s;",
-            (course_id,)
+            (course_id,),
         )
         result = cursor.fetchone()
 
@@ -318,7 +318,7 @@ class LMSApp:
             course_id INT NOT NULL,
             reason TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            exam_type VARCHAR(10) CHECK (exam_type IN ('quiz', 'mid term', 'final')) NOT NULL,
+            exam_type VARCHAR(20) CHECK (exam_type IN ('quiz', 'mid term', 'final')) NOT NULL,
             status VARCHAR(10) CHECK (status IN ('pending', 'approved', 'rejected')) NOT NULL,
             FOREIGN KEY (sender_id) REFERENCES Users(user_id) ON DELETE CASCADE,
             FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE
@@ -881,48 +881,39 @@ class LMSApp:
             pady=20
         )
 
-        course_label = ttk.Label(self.root, text="Course ID:")
-        course_label.pack()
+        ttk.Label(self.root, text="Course ID:").pack()
         self.recheck_course_id_var = tk.StringVar()
-        self.recheck_course_id_entry = ttk.Entry(
-            self.root, textvariable=self.recheck_course_id_var
-        )
-        self.recheck_course_id_entry.pack(pady=5)
+        ttk.Entry(self.root, textvariable=self.recheck_course_id_var).pack(pady=5)
 
-        exam_type_label = ttk.Label(self.root, text="Exam Type:")
-        exam_type_label.pack()
+        ttk.Label(self.root, text="Exam Type:").pack()
         self.recheck_exam_type_var = tk.StringVar()
         self.recheck_exam_type_combobox = ttk.Combobox(
             self.root,
             textvariable=self.recheck_exam_type_var,
             values=["quiz", "mid term", "final"],
+            state="readonly",
         )
         self.recheck_exam_type_combobox.pack(pady=5)
 
-        reason_label = ttk.Label(self.root, text="Reason:")
-        reason_label.pack()
+        ttk.Label(self.root, text="Reason:").pack()
         self.recheck_reason_text = tk.Text(self.root, height=5, width=40)
         self.recheck_reason_text.pack(pady=5)
 
-        submit_button = ttk.Button(
+        ttk.Button(
             self.root, text="Submit Request", command=self.submit_recheck_request
+        ).pack(pady=10)
+        ttk.Button(self.root, text="Back to Menu", command=self.show_user_menu).pack(
+            pady=10
         )
-        submit_button.pack(pady=10)
-        back_button = ttk.Button(
-            self.root, text="Back to Menu", command=self.show_user_menu
-        )
-        back_button.pack(pady=10)
 
     def submit_recheck_request(self):
         try:
-            course_id = int(
-                self.recheck_course_id_var.get()
-            )  # Ensure course_id is an integer
+            course_id = int(self.recheck_course_id_var.get().strip())
         except ValueError:
             messagebox.showerror("Rechecking Request", "Course ID must be an integer.")
             return
 
-        exam_type = self.recheck_exam_type_var.get()
+        exam_type = self.recheck_exam_type_var.get().strip().lower()
         reason = self.recheck_reason_text.get("1.0", tk.END).strip()
 
         if not course_id or not exam_type or not reason:
@@ -930,15 +921,19 @@ class LMSApp:
             return
 
         query = """INSERT INTO rechecking (sender_id, course_id, reason, exam_type, status)
-        VALUES (%s, %s, %s, %s, 'pending')"""
+               VALUES (%s, %s, %s, %s, 'pending')"""
         params = (self.user_id, course_id, reason, exam_type)
+
         if execute_query(self.conn, self.cursor, query, params):
             messagebox.showinfo(
                 "Rechecking Request", "Your request has been submitted."
             )
             self.show_user_menu()
         else:
-            messagebox.showerror("Rechecking Request", "Failed to submit request.")
+            messagebox.showerror(
+                "Rechecking Request",
+                "Failed to submit request. Check console for details.",
+            )
 
     def populate_course_combobox(self, combobox=None):
         query = "SELECT course_id, title FROM Courses"
