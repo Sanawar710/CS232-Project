@@ -290,18 +290,6 @@ class LMSApp:
         );"""
         execute_query(self.conn, self.cursor, attendance_script)
 
-        message_script = """CREATE TABLE IF NOT EXISTS message (
-            Message_id SERIAL PRIMARY KEY,
-            sender_id INT NOT NULL,
-            receiver_id INT NOT NULL,
-            Message TEXT NOT NULL,
-            Status VARCHAR(100),
-            Time TIMESTAMP,
-            FOREIGN KEY (sender_id) REFERENCES Users(user_id) ON DELETE CASCADE,
-            FOREIGN KEY (receiver_id) REFERENCES Users(user_id) ON DELETE CASCADE
-        );"""
-        execute_query(self.conn, self.cursor, message_script)
-
         bugs_script = """CREATE TABLE IF NOT EXISTS bug (
             bug_id SERIAL PRIMARY KEY,
             sender_id INT NOT NULL,
@@ -1301,50 +1289,6 @@ class LMSApp:
         else:
             messagebox.showerror("Add Course Error", "All fields are required.")
 
-    def add_course(self):
-        self.clear_window()
-        ttk.Label(self.root, text="Add Course", font=("Arial", 16)).pack(pady=20)
-
-        course_id_label = ttk.Label(self.root, text="Course ID:")
-        course_id_label.pack()
-        self.add_course_id_entry = ttk.Entry(self.root)
-        self.add_course_id_entry.pack(pady=5)
-
-        title_label = ttk.Label(self.root, text="Title:")
-        title_label.pack()
-        self.add_course_title_entry = ttk.Entry(self.root)
-        self.add_course_title_entry.pack(pady=5)
-
-        credit_hours_label = ttk.Label(self.root, text="Credit Hours:")
-        credit_hours_label.pack()
-        self.add_course_credit_hours_entry = ttk.Entry(self.root)
-        self.add_course_credit_hours_entry.pack(pady=5)
-
-        instructor_label = ttk.Label(self.root, text="Instructor:")
-        instructor_label.pack()
-        self.add_course_instructor_var = tk.StringVar()
-        self.add_course_instructor_combobox = ttk.Combobox(
-            self.root, textvariable=self.add_course_instructor_var
-        )
-        self.populate_instructor_dropdown()
-        self.add_course_instructor_combobox.pack(pady=5)
-
-        semester_label = ttk.Label(self.root, text="Semester:")
-        semester_label.pack()
-        self.add_course_semester_entry = ttk.Entry(self.root)
-        self.add_course_semester_entry.pack(pady=5)
-
-        add_button = ttk.Button(
-            self.root, text="Add Course", command=self.add_course_to_db
-        )
-        add_button.pack(pady=10)
-        back_button = ttk.Button(
-            self.root, text="Back to Manage Courses", command=self.manage_courses
-        )
-
-        back_button.pack(pady=10)
-        credit_hours_label.pack()
-
     def edit_course(self):
         self.clear_window()
         ttk.Label(self.root, text="Edit Course", font=("Arial", 16)).pack(pady=20)
@@ -1768,11 +1712,7 @@ class LMSApp:
         ttk.Label(self.root, text="View Rechecking Requests", font=("Arial", 16)).pack(
             pady=20
         )
-        query = """SELECT r.recheck_id, u.name, c.title, r.exam_type, r.reason, r.status, r.created_at
-            FROM rechecking r
-            JOIN Users u ON r.sender_id = u.user_id
-            JOIN Courses c ON r.course_id = c.course_id
-        """
+        query = """SELECT * FROM Rechecking"""
         requests = execute_query(self.conn, self.cursor, query, fetch=True)
         if requests:
             for request in requests:
