@@ -90,14 +90,31 @@ def absolute_grading(conn, cursor, course_id):
 
 def relative_grading(conn, cursor, course_id):
     try:
+        # Count how many marks entries exist for this course
+        cursor.execute(
+            "SELECT COUNT(*) FROM Results WHERE course_id = %s AND total_marks IS NOT NULL;",
+            (course_id,)
+        )
+        count = cursor.fetchone()[0]
+
+        if count < 2:
+            messagebox.showwarning(
+                "Grading Skipped",
+                "Not enough students with marks to apply relative grading (need at least 2)."
+            )
+            return
+
+        # Now calculate mean and stddev
         cursor.execute(
             "SELECT AVG(total_marks), STDDEV(total_marks) FROM Results WHERE course_id = %s;",
-            (course_id,),
+            (course_id,)
         )
         result = cursor.fetchone()
+
         if result and result[0] is not None and result[1] is not None:
             mean, stddev = result
-            query = """ UPDATE Results
+            query = """
+                UPDATE Results
                 SET grade = CASE
                     WHEN total_marks >= %s + 1 * %s THEN 'A'
                     WHEN total_marks >= %s + 0.5 * %s THEN 'B'
