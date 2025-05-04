@@ -5,7 +5,6 @@ import pandas as pd  # 'pandas' is a data manipulation and analysis library.
 import numpy as np  # 'numpy' is a library for numerical computations in Python.
 import matplotlib.pyplot as plt  # 'matplotlib' is a plotting library for Python.
 
-
 df = pd.DataFrame()
 
 # Database Connection Parameters
@@ -443,7 +442,7 @@ class LMSApp:
         self.clear_window()
 
         if self.role.strip().lower() == "student":  # Normalize and compare
-            menu_label = ttk.Label(self.root, text="User Menu", font=("Arial", 16))
+            menu_label = ttk.Label(self.root, text="Student's Menu", font=("Arial", 16))
             menu_label.pack(pady=20)
             ttk.Button(self.root, text="View Courses", command=self.view_courses).pack(
                 pady=5
@@ -473,19 +472,19 @@ class LMSApp:
             ttk.Button(
                 self.root, text="Manage Courses", command=self.manage_courses
             ).pack(pady=5)
-            
+
             ttk.Button(
                 self.root,
                 text="View Rechecking Requests",
                 command=lambda: self.view_rechecking_requests(),
             ).pack(pady=5)
-            
+
             ttk.Button(
                 self.root,
                 text="View Percentage Distribution",
                 command=lambda: plot_percentage_distribution(self.conn, self.cursor),
             ).pack(pady=5)
-            
+
             ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(
                 pady=10
             )
@@ -498,11 +497,9 @@ class LMSApp:
                 self.root, text="Instructor's Section", font=("Arial", 16)
             )
             menu_label.pack(pady=20)
-            
-            ttk.Button(
-                self.root, text = "Add Mark", command = self.add_marks
-            ).pack(pady=5)
-            
+
+            ttk.Button(self.root, text="Add Mark", command=self.add_marks).pack(pady=5)
+
             ttk.Button(
                 self.root, text="Apply Grading", command=self.show_grading_options
             ).pack(pady=5)
@@ -655,8 +652,7 @@ class LMSApp:
             self.conn.rollback()
             messagebox.showerror("Registration Error", f"Failed to register user: {e}")
             return
-        
-        
+
     def add_marks(self):
         self.clear_window()
         ttk.Label(self.root, text="Add Marks", font=("Arial", 16)).pack(pady=20)
@@ -665,8 +661,8 @@ class LMSApp:
         course_label.pack()
         self.add_marks_course_var = tk.StringVar()
         self.add_marks_course_combobox = ttk.Combobox(
-        self.root, textvariable=self.add_marks_course_var
-    )
+            self.root, textvariable=self.add_marks_course_var
+        )
         self.populate_course_combobox(self.add_marks_course_combobox)
         self.add_marks_course_combobox.pack(pady=5)
 
@@ -695,53 +691,56 @@ class LMSApp:
         self.add_marks_final_entry = ttk.Entry(self.root)
         self.add_marks_final_entry.pack(pady=5)
 
-        submit_button = ttk.Button(self.root, text="Submit Marks", command=self.submit_marks)
+        submit_button = ttk.Button(
+            self.root, text="Submit Marks", command=self.submit_marks
+        )
         submit_button.pack(pady=10)
 
-        back_button = ttk.Button(self.root, text="Back to Menu", command=self.show_user_menu)
+        back_button = ttk.Button(
+            self.root, text="Back to Menu", command=self.show_user_menu
+        )
         back_button.pack(pady=10)
 
-
     def submit_marks(self):
-            course_id = self.add_marks_course_var.get().split("(")[-1].split(")")[0]
-            student_id = self.add_marks_student_entry.get()
-            quiz1 = self.add_marks_quiz1_entry.get()
-            quiz2 = self.add_marks_quiz2_entry.get()
-            midterm = self.add_marks_midterm_entry.get()
-            final = self.add_marks_final_entry.get()
+        course_id = self.add_marks_course_var.get().split("(")[-1].split(")")[0]
+        student_id = self.add_marks_student_entry.get()
+        quiz1 = self.add_marks_quiz1_entry.get()
+        quiz2 = self.add_marks_quiz2_entry.get()
+        midterm = self.add_marks_midterm_entry.get()
+        final = self.add_marks_final_entry.get()
 
-            if not (course_id and student_id and quiz1 and quiz2 and midterm and final):
-                messagebox.showerror("Error", "All fields are required.")
-                return
+        if not (course_id and student_id and quiz1 and quiz2 and midterm and final):
+            messagebox.showerror("Error", "All fields are required.")
+            return
 
-            try:
-                quiz1 = float(quiz1)
-                quiz2 = float(quiz2)
-                midterm = float(midterm)
-                final = float(final)
-                total_marks = quiz1 + quiz2 + midterm + final
+        try:
+            quiz1 = float(quiz1)
+            quiz2 = float(quiz2)
+            midterm = float(midterm)
+            final = float(final)
+            total_marks = quiz1 + quiz2 + midterm + final
 
-                query = """INSERT INTO Results (user_id, course_id, quiz1, quiz2, midterm, final, total_marks)
+            query = """INSERT INTO Results (user_id, course_id, quiz1, quiz2, midterm, final, total_marks)
                            VALUES (%s, %s, %s, %s, %s, %s, %s)
                            ON CONFLICT (user_id, course_id) DO UPDATE
                            SET quiz1 = EXCLUDED.quiz1, quiz2 = EXCLUDED.quiz2, midterm = EXCLUDED.midterm,
                                final = EXCLUDED.final, total_marks = EXCLUDED.total_marks"""
-                params = (
-                    student_id,
-                    course_id,
-                    quiz1,
-                    quiz2,
-                    midterm,
-                    final,
-                    total_marks,
-                )
-                if execute_query(self.conn, self.cursor, query, params):
-                    messagebox.showinfo("Success", "Marks added successfully.")
-                    self.show_user_menu()
-                else:
-                    messagebox.showerror("Error", "Failed to add marks.")
-            except ValueError:
-                messagebox.showerror("Error", "Marks must be numeric values.")
+            params = (
+                student_id,
+                course_id,
+                quiz1,
+                quiz2,
+                midterm,
+                final,
+                total_marks,
+            )
+            if execute_query(self.conn, self.cursor, query, params):
+                messagebox.showinfo("Success", "Marks added successfully.")
+                self.show_user_menu()
+            else:
+                messagebox.showerror("Error", "Failed to add marks.")
+        except ValueError:
+            messagebox.showerror("Error", "Marks must be numeric values.")
 
     def show_grading_options(self):
         grading_window = tk.Toplevel(self.root)
@@ -885,27 +884,24 @@ class LMSApp:
 
     def request_rechecking(self):
         self.clear_window()
-        ttk.Label(self.root, text="Request Rechecking", font=("Arial", 16)).pack(
-            pady=20
-        )
+        ttk.Label(self.root, text="Request Rechecking", font=("Arial", 16)).pack(pady=20)
 
-        course_label = ttk.Label(self.root, text="Course:")
+        course_label = ttk.Label(self.root, text="Course ID:")
         course_label.pack()
-        self.recheck_course_var = tk.StringVar()
-        self.recheck_course_combobox = ttk.Combobox(
-            self.root, textvariable=self.recheck_course_var
-        )
-        self.populate_course_combobox()  # Populate with courses
-        self.recheck_course_combobox.pack(pady=5)
+        self.recheck_course_id_var = tk.StringVar()
+        self.recheck_course_id_entry = ttk.Entry(
+        self.root, textvariable=self.recheck_course_id_var
+    )
+        self.recheck_course_id_entry.pack(pady=5)
 
         exam_type_label = ttk.Label(self.root, text="Exam Type:")
         exam_type_label.pack()
         self.recheck_exam_type_var = tk.StringVar()
         self.recheck_exam_type_combobox = ttk.Combobox(
-            self.root,
-            textvariable=self.recheck_exam_type_var,
-            values=["quiz", "mid term", "final"],
-        )
+        self.root,
+        textvariable=self.recheck_exam_type_var,
+        values=["quiz", "mid term", "final"],
+    )
         self.recheck_exam_type_combobox.pack(pady=5)
 
         reason_label = ttk.Label(self.root, text="Reason:")
@@ -914,98 +910,55 @@ class LMSApp:
         self.recheck_reason_text.pack(pady=5)
 
         submit_button = ttk.Button(
-            self.root, text="Submit Request", command=self.submit_recheck_request
-        )
+        self.root, text="Submit Request", command=self.submit_recheck_request
+    )
         submit_button.pack(pady=10)
         back_button = ttk.Button(
-            self.root, text="Back to Menu", command=self.show_user_menu
-        )
+        self.root, text="Back to Menu", command=self.show_user_menu
+    )
         back_button.pack(pady=10)
 
     def submit_recheck_request(self):
-        course_id = self.recheck_course_var.get()
+        try:
+            course_id = int(self.recheck_course_id_var.get())  # Ensure course_id is an integer
+        except ValueError:
+            messagebox.showerror("Rechecking Request", "Course ID must be an integer.")
+            return
+
         exam_type = self.recheck_exam_type_var.get()
         reason = self.recheck_reason_text.get("1.0", tk.END).strip()
-        if course_id and exam_type and reason:
-            query = """INSERT INTO rechecking (sender_id, course_id, reason, exam_type, status)
-                VALUES (%s, %s, %s, %s, 'pending')
-            """
-            params = (self.user_id, course_id, reason, exam_type)
-            if execute_query(self.conn, self.cursor, query, params):
-                messagebox.showinfo(
-                    "Rechecking Request", "Your request has been submitted."
-                )
-                messagebox.showerror("Rechecking Request", "Failed to submit request.")
-        else:
+
+        if not course_id or not exam_type or not reason:
             messagebox.showerror("Rechecking Request", "Please fill in all fields.")
-        self.clear_window()
-        ttk.Label(self.root, text="Request Rechecking", font=("Arial", 16)).pack(
-            pady=20
+            return
+
+        query = """INSERT INTO rechecking (sender_id, course_id, reason, exam_type, status)
+        VALUES (%s, %s, %s, %s, 'pending')"""
+        params = (self.user_id, course_id, reason, exam_type)
+        if execute_query(self.conn, self.cursor, query, params):
+            messagebox.showinfo(
+            "Rechecking Request", "Your request has been submitted."
         )
-
-        course_label = ttk.Label(self.root, text="Course:")
-        course_label.pack()
-        self.recheck_course_var = tk.StringVar()
-        self.recheck_course_combobox = ttk.Combobox(
-            self.root, textvariable=self.recheck_course_var
-        )
-        self.populate_course_combobox()  # Populate with courses
-        self.recheck_course_combobox.pack(pady=5)
-
-        exam_type_label = ttk.Label(self.root, text="Exam Type:")
-        exam_type_label.pack()
-        self.recheck_exam_type_var = tk.StringVar()
-        self.recheck_exam_type_combobox = ttk.Combobox(
-            self.root,
-            textvariable=self.recheck_exam_type_var,
-            values=["quiz", "mid term", "final"],
-        )
-        self.recheck_exam_type_combobox.pack(pady=5)
-
-        reason_label = ttk.Label(self.root, text="Reason:")
-        reason_label.pack()
-        self.recheck_reason_text = tk.Text(self.root, height=5, width=40)
-        self.recheck_reason_text.pack(pady=5)
-
-    def submit_recheck_request(self):
-        course_id = self.recheck_course_var.get()
-        exam_type = self.recheck_exam_type_var.get()
-        reason = self.recheck_reason_text.get("1.0", tk.END).strip()
-        if course_id and exam_type and reason:
-            query = """
-                    INSERT INTO rechecking (sender_id, course_id, reason, exam_type, status)
-                    VALUES (%s, %s, %s, %s, 'pending')
-                """
-            params = (self.user_id, course_id, reason, exam_type)
-            if execute_query(self.conn, self.cursor, query, params):
-                messagebox.showinfo(
-                    "Rechecking Request", "Your request has been submitted."
-                )
-                self.show_user_menu()
-            else:
-                messagebox.showerror("Rechecking Request", "Failed to submit request.")
+            self.show_user_menu()
         else:
-            messagebox.showerror("Rechecking Request", "Please fill in all fields.")
+            messagebox.showerror("Rechecking Request", "Failed to submit request.")
 
-            submit_button = ttk.Button(
-                self.root, text="Submit Request", command=self.submit_recheck_request
-            )
-            submit_button.pack(pady=10)
-            back_button = ttk.Button(
-                self.root, text="Back to Menu", command=self.show_user_menu
-            )
-            back_button.pack(pady=10)
-
-    def populate_course_combobox(self):
-        query = "SELECT course_id, title FROM Courses"  # Adjust query as needed
+    
+    def populate_course_combobox(self, combobox=None):
+        query = "SELECT course_id, title FROM Courses"
         courses = execute_query(self.conn, self.cursor, query, fetch=True)
         if courses:
-            course_list = [
-                f"{course[1]} ({course[0]})" for course in courses
-            ]  # Format: "Course Title (Course ID)"
-            self.recheck_course_combobox["values"] = course_list
+            course_list = [f"{title} ({course_id})" for course_id, title in courses]
+            if combobox:
+                combobox["values"] = course_list
+            else:
+                self.recheck_course_combobox["values"] = course_list
         else:
-            self.recheck_course_combobox["values"] = []
+
+            if combobox:
+                combobox["values"] = []
+            else:
+                self.recheck_course_combobox["values"] = []
 
     def manage_users(self):
         self.clear_window()
@@ -1528,7 +1481,6 @@ class LMSApp:
         semester_label = ttk.Label(self.root, text="Semester:")
         semester_label.pack()
 
-
     def delete_course(self):
         self.clear_window()
         ttk.Label(self.root, text="Delete Course", font=("Arial", 16)).pack(pady=20)
@@ -1848,4 +1800,7 @@ if __name__ == "__main__":
     app = LMSApp(root)
     root.mainloop()
     root.destroy()
-    app.close_connection()  # Close the database connection when the app is closed
+    if app.conn and app.cursor:
+        close_db(
+            app.conn, app.cursor
+        )  # Close the database connection when the app is closed
