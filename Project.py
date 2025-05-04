@@ -119,9 +119,14 @@ def relative_grading(conn, cursor, course_id):
         messagebox.showerror("Grading Error", f"Error in relative grading: {e}")
 
 
-def plot_percentage_distribution(conn, cursor):
-    query = "SELECT total_marks FROM Results;"
-    percentages = execute_query(conn, cursor, query, fetch=True)
+def plot_percentage_distribution(conn, cursor, course_id=None):
+    if course_id:
+        query = "SELECT total_marks FROM Results WHERE course_id = %s;"
+        percentages = execute_query(conn, cursor, query, (course_id,), fetch=True)
+    else:
+        query = "SELECT total_marks FROM Results;"
+        percentages = execute_query(conn, cursor, query, fetch=True)
+
     if percentages:
         data = np.array([p[0] for p in percentages if p[0] is not None])
         if data.size > 0:
@@ -140,8 +145,8 @@ def plot_percentage_distribution(conn, cursor):
                 -0.5 * ((x - mean) / std_dev) ** 2
             )
             plt.plot(x, y, color="red", linewidth=2)
-            plt.title("Normal Distribution of Total Percentages")
-            plt.xlabel("Total Percentage")
+            plt.title("Normal Distribution of Total Marks")
+            plt.xlabel("Total Marks")
             plt.ylabel("Density")
             plt.grid(True)
             plt.show()
@@ -251,6 +256,7 @@ class LMSApp:
             final FLOAT DEFAULT 0,
             total_marks FLOAT DEFAULT 0,
             grade VARCHAR(2),
+            UNIQUE (user_id, course_id),
             FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
             FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE
         );"""
@@ -661,8 +667,8 @@ class LMSApp:
         course_label.pack()
         self.add_marks_course_var = tk.StringVar()
         self.add_marks_course_combobox = ttk.Combobox(
-        self.root, textvariable=self.add_marks_course_var
-    )
+            self.root, textvariable=self.add_marks_course_var
+        )
         self.populate_course_combobox(self.add_marks_course_combobox)
         self.add_marks_course_combobox.pack(pady=5)
 
@@ -672,11 +678,11 @@ class LMSApp:
         self.add_marks_student_entry.pack(pady=5)
 
         for label_text, attr in [
-        ("Quiz 1 Marks:", "quiz1"),
-        ("Quiz 2 Marks:", "quiz2"),
-        ("Midterm Marks:", "midterm"),
-        ("Final Marks:", "final")
-    ]:
+            ("Quiz 1 Marks:", "quiz1"),
+            ("Quiz 2 Marks:", "quiz2"),
+            ("Midterm Marks:", "midterm"),
+            ("Final Marks:", "final"),
+        ]:
             label = ttk.Label(self.root, text=label_text)
             label.pack()
             entry = ttk.Entry(self.root)
@@ -684,15 +690,14 @@ class LMSApp:
             entry.pack(pady=5)
 
         submit_button = ttk.Button(
-        self.root, text="Submit Marks", command=self.submit_marks
-    )
+            self.root, text="Submit Marks", command=self.submit_marks
+        )
         submit_button.pack(pady=10)
 
         back_button = ttk.Button(
-        self.root, text="Back to Menu", command=self.show_user_menu
-    )
+            self.root, text="Back to Menu", command=self.show_user_menu
+        )
         back_button.pack(pady=10)
-
 
     def submit_marks(self):
         course_id = self.add_marks_course_var.get().split("(")[-1].split(")")[0]
@@ -713,7 +718,6 @@ class LMSApp:
             final = float(final)
             total_marks = quiz1 + quiz2 + midterm + final
 
-        
             query = """INSERT INTO Results (user_id, course_id, quiz1, quiz2, midterm, final, total_marks)
                    VALUES (%s, %s, %s, %s, %s, %s, %s)
                    ON CONFLICT (user_id, course_id) DO UPDATE
@@ -731,7 +735,7 @@ class LMSApp:
                 messagebox.showerror("Error", "Failed to submit marks.")
         except ValueError:
             messagebox.showerror("Error", "Marks must be numeric values.")
-    
+
     def show_grading_options(self):
         grading_window = tk.Toplevel(self.root)
         grading_window.title("Apply Grading")
@@ -766,6 +770,7 @@ class LMSApp:
                 absolute_grading, self.selected_course_var.get()
             ),
         ).pack(pady=5)
+
         ttk.Button(
             grading_window,
             text="Relative Grading",
@@ -782,33 +787,14 @@ class LMSApp:
         # Extract course_id from the selected course name
         course_id = selected_course_name.split("(")[-1].split(")")[0]
 
-        # Apply grading for the selected course
-        grading_function(self.conn, self.cursor, course_id)
-
-        # Save results to the database
+        # Optionally update total_marks if needed
         query = """UPDATE Results
-        SET total_marks = quiz1 + quiz2 + midterm + final
-        WHERE course_id = %s"""
+               SET total_marks = quiz1 + quiz2 + midterm + final
+               WHERE course_id = %s"""
         execute_query(self.conn, self.cursor, query, (course_id,))
 
-        # Prompt user to save results to a CSV file
-        file_path = tk.filedialog.asksaveasfilename(
-            defaultextension=".csv",
-            filetypes=[("CSV files", "*.csv")],
-            title="Save Graded Results As",
-        )
-        if not file_path:
-            messagebox.showerror("Error", "File path not provided.")
-            return
-
-        query = "SELECT * FROM Results WHERE course_id = %s;"
-        results = execute_query(self.conn, self.cursor, query, (course_id,), fetch=True)
-        if results:
-            columns = [desc[0] for desc in self.cursor.description]
-            df = pd.DataFrame(results, columns=columns)
-            df.to_csv(file_path, index=False)
-            messagebox.showinfo("Grading", f"Grading applied and saved to {file_path}.")
-            plot_percentage_distribution(self.conn, self.cursor)
+        # Apply the selected grading method (this updates the grade column)
+        grading_function(self.conn, self.cursor, course_id)
 
     def view_courses(self):
         self.clear_window()
@@ -874,24 +860,26 @@ class LMSApp:
 
     def request_rechecking(self):
         self.clear_window()
-        ttk.Label(self.root, text="Request Rechecking", font=("Arial", 16)).pack(pady=20)
+        ttk.Label(self.root, text="Request Rechecking", font=("Arial", 16)).pack(
+            pady=20
+        )
 
         course_label = ttk.Label(self.root, text="Course ID:")
         course_label.pack()
         self.recheck_course_id_var = tk.StringVar()
         self.recheck_course_id_entry = ttk.Entry(
-        self.root, textvariable=self.recheck_course_id_var
-    )
+            self.root, textvariable=self.recheck_course_id_var
+        )
         self.recheck_course_id_entry.pack(pady=5)
 
         exam_type_label = ttk.Label(self.root, text="Exam Type:")
         exam_type_label.pack()
         self.recheck_exam_type_var = tk.StringVar()
         self.recheck_exam_type_combobox = ttk.Combobox(
-        self.root,
-        textvariable=self.recheck_exam_type_var,
-        values=["quiz", "mid term", "final"],
-    )
+            self.root,
+            textvariable=self.recheck_exam_type_var,
+            values=["quiz", "mid term", "final"],
+        )
         self.recheck_exam_type_combobox.pack(pady=5)
 
         reason_label = ttk.Label(self.root, text="Reason:")
@@ -900,17 +888,19 @@ class LMSApp:
         self.recheck_reason_text.pack(pady=5)
 
         submit_button = ttk.Button(
-        self.root, text="Submit Request", command=self.submit_recheck_request
-    )
+            self.root, text="Submit Request", command=self.submit_recheck_request
+        )
         submit_button.pack(pady=10)
         back_button = ttk.Button(
-        self.root, text="Back to Menu", command=self.show_user_menu
-    )
+            self.root, text="Back to Menu", command=self.show_user_menu
+        )
         back_button.pack(pady=10)
 
     def submit_recheck_request(self):
         try:
-            course_id = int(self.recheck_course_id_var.get())  # Ensure course_id is an integer
+            course_id = int(
+                self.recheck_course_id_var.get()
+            )  # Ensure course_id is an integer
         except ValueError:
             messagebox.showerror("Rechecking Request", "Course ID must be an integer.")
             return
@@ -927,13 +917,12 @@ class LMSApp:
         params = (self.user_id, course_id, reason, exam_type)
         if execute_query(self.conn, self.cursor, query, params):
             messagebox.showinfo(
-            "Rechecking Request", "Your request has been submitted."
-        )
+                "Rechecking Request", "Your request has been submitted."
+            )
             self.show_user_menu()
         else:
             messagebox.showerror("Rechecking Request", "Failed to submit request.")
 
-    
     def populate_course_combobox(self, combobox=None):
         query = "SELECT course_id, title FROM Courses"
         courses = execute_query(self.conn, self.cursor, query, fetch=True)
