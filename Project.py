@@ -661,8 +661,8 @@ class LMSApp:
         course_label.pack()
         self.add_marks_course_var = tk.StringVar()
         self.add_marks_course_combobox = ttk.Combobox(
-            self.root, textvariable=self.add_marks_course_var
-        )
+        self.root, textvariable=self.add_marks_course_var
+    )
         self.populate_course_combobox(self.add_marks_course_combobox)
         self.add_marks_course_combobox.pack(pady=5)
 
@@ -671,35 +671,28 @@ class LMSApp:
         self.add_marks_student_entry = ttk.Entry(self.root)
         self.add_marks_student_entry.pack(pady=5)
 
-        quiz1_label = ttk.Label(self.root, text="Quiz 1 Marks:")
-        quiz1_label.pack()
-        self.add_marks_quiz1_entry = ttk.Entry(self.root)
-        self.add_marks_quiz1_entry.pack(pady=5)
-
-        quiz2_label = ttk.Label(self.root, text="Quiz 2 Marks:")
-        quiz2_label.pack()
-        self.add_marks_quiz2_entry = ttk.Entry(self.root)
-        self.add_marks_quiz2_entry.pack(pady=5)
-
-        midterm_label = ttk.Label(self.root, text="Midterm Marks:")
-        midterm_label.pack()
-        self.add_marks_midterm_entry = ttk.Entry(self.root)
-        self.add_marks_midterm_entry.pack(pady=5)
-
-        final_label = ttk.Label(self.root, text="Final Marks:")
-        final_label.pack()
-        self.add_marks_final_entry = ttk.Entry(self.root)
-        self.add_marks_final_entry.pack(pady=5)
+        for label_text, attr in [
+        ("Quiz 1 Marks:", "quiz1"),
+        ("Quiz 2 Marks:", "quiz2"),
+        ("Midterm Marks:", "midterm"),
+        ("Final Marks:", "final")
+    ]:
+            label = ttk.Label(self.root, text=label_text)
+            label.pack()
+            entry = ttk.Entry(self.root)
+            setattr(self, f"add_marks_{attr}_entry", entry)
+            entry.pack(pady=5)
 
         submit_button = ttk.Button(
-            self.root, text="Submit Marks", command=self.submit_marks
-        )
+        self.root, text="Submit Marks", command=self.submit_marks
+    )
         submit_button.pack(pady=10)
 
         back_button = ttk.Button(
-            self.root, text="Back to Menu", command=self.show_user_menu
-        )
+        self.root, text="Back to Menu", command=self.show_user_menu
+    )
         back_button.pack(pady=10)
+
 
     def submit_marks(self):
         course_id = self.add_marks_course_var.get().split("(")[-1].split(")")[0]
@@ -720,28 +713,25 @@ class LMSApp:
             final = float(final)
             total_marks = quiz1 + quiz2 + midterm + final
 
+        
             query = """INSERT INTO Results (user_id, course_id, quiz1, quiz2, midterm, final, total_marks)
-                           VALUES (%s, %s, %s, %s, %s, %s, %s)
-                           ON CONFLICT (user_id, course_id) DO UPDATE
-                           SET quiz1 = EXCLUDED.quiz1, quiz2 = EXCLUDED.quiz2, midterm = EXCLUDED.midterm,
-                               final = EXCLUDED.final, total_marks = EXCLUDED.total_marks"""
-            params = (
-                student_id,
-                course_id,
-                quiz1,
-                quiz2,
-                midterm,
-                final,
-                total_marks,
-            )
+                   VALUES (%s, %s, %s, %s, %s, %s, %s)
+                   ON CONFLICT (user_id, course_id) DO UPDATE
+                   SET quiz1 = EXCLUDED.quiz1,
+                       quiz2 = EXCLUDED.quiz2,
+                       midterm = EXCLUDED.midterm,
+                       final = EXCLUDED.final,
+                       total_marks = EXCLUDED.total_marks"""
+            params = (student_id, course_id, quiz1, quiz2, midterm, final, total_marks)
+
             if execute_query(self.conn, self.cursor, query, params):
-                messagebox.showinfo("Success", "Marks added successfully.")
+                messagebox.showinfo("Success", "Marks submitted successfully.")
                 self.show_user_menu()
             else:
-                messagebox.showerror("Error", "Failed to add marks.")
+                messagebox.showerror("Error", "Failed to submit marks.")
         except ValueError:
             messagebox.showerror("Error", "Marks must be numeric values.")
-
+    
     def show_grading_options(self):
         grading_window = tk.Toplevel(self.root)
         grading_window.title("Apply Grading")
