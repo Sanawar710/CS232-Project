@@ -201,6 +201,7 @@ class LMSApp:
         if not self.conn:
             return
         self.user = None
+        self._execute_code1()
         self.show_login_menu()
 
     def _execute_code1(self):
