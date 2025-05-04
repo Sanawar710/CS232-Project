@@ -253,7 +253,7 @@ class LMSApp:
         registration_script = """CREATE TABLE IF NOT EXISTS Registrations (
             registration_id SERIAL PRIMARY KEY,
             user_id INT NOT NULL,
-            course_id TEXT NOT NULL,
+            course_id INT NOT NULL,
             status VARCHAR(20) DEFAULT 'enrolled',
             semester VARCHAR(20),
             FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
@@ -325,7 +325,7 @@ class LMSApp:
 
         feedback_script = """CREATE TABLE IF NOT EXISTS feedback (
             feedback_id SERIAL PRIMARY KEY,
-            sender_id INT,
+            sender_id INT NOT NULL,
             course_id INT NOT NULL,
             instructor_id INT,
             rating INT CHECK (rating BETWEEN 1 AND 5),
@@ -362,7 +362,7 @@ class LMSApp:
         reply_script = """CREATE TABLE IF NOT EXISTS DiscussionReplies (
             reply_id SERIAL PRIMARY KEY,
             thread_id INT NOT NULL,
-            sender_id INT,
+            sender_id INT NOT NULL,
             message TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (thread_id) REFERENCES DiscussionThreads(thread_id) ON DELETE CASCADE,
