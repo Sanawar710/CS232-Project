@@ -562,6 +562,9 @@ class LMSApp:
                 self.root, text="View Academic Calendar", command=self.view_calendar
             ).pack(pady=5)
             ttk.Button(
+                self.root, text="Update Attendance", command=self.update_attendance
+            ).pack(pady=5)
+            ttk.Button(
                 self.root,
                 text="Create Discussion Thread",
                 command=self.create_discussion_thread,
@@ -582,6 +585,81 @@ class LMSApp:
             ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(
                 pady=10
             )
+
+    def update_attendance(self):
+        self.clear_window()
+        ttk.Label(self.root, text="Update Attendance", font=("Arial", 16)).pack(pady=20)
+
+        # Course Selection
+        course_label = ttk.Label(self.root, text="Course:")
+        course_label.pack()
+        self.attendance_course_var = tk.StringVar()
+        self.attendance_course_combobox = ttk.Combobox(
+            self.root, textvariable=self.attendance_course_var
+        )
+        self.populate_course_combobox(self.attendance_course_combobox)
+        self.attendance_course_combobox.pack(pady=5)
+
+        # Student ID Entry
+        student_label = ttk.Label(self.root, text="Student ID:")
+        student_label.pack()
+        self.attendance_student_entry = ttk.Entry(self.root)
+        self.attendance_student_entry.pack(pady=5)
+
+        # Date Entry
+        date_label = ttk.Label(self.root, text="Date (YYYY-MM-DD):")
+        date_label.pack()
+        self.attendance_date_entry = ttk.Entry(self.root)
+        self.attendance_date_entry.pack(pady=5)
+
+        # Attendance Status
+        status_label = ttk.Label(self.root, text="Status:")
+        status_label.pack()
+        self.attendance_status_var = tk.StringVar(value="present")
+        present_radio = ttk.Radiobutton(
+            self.root,
+            text="Present",
+            variable=self.attendance_status_var,
+            value="present",
+        )
+        absent_radio = ttk.Radiobutton(
+            self.root,
+            text="Absent",
+            variable=self.attendance_status_var,
+            value="absent",
+        )
+        present_radio.pack()
+        absent_radio.pack()
+
+        # Submit Button
+        submit_button = ttk.Button(
+            self.root, text="Submit", command=self.submit_attendance
+        )
+        submit_button.pack(pady=10)
+
+        # Back Button
+        back_button = ttk.Button(self.root, text="Back", command=self.show_user_menu)
+        back_button.pack(pady=5)
+
+    def submit_attendance(self):
+        course = self.attendance_course_var.get()
+        student_id = self.attendance_student_entry.get()
+        date = self.attendance_date_entry.get()
+        status = self.attendance_status_var.get()
+
+        if not course or not student_id or not date:
+            messagebox.showerror("Error", "All fields are required.")
+            return
+
+        try:
+            self.cursor.execute(
+                "INSERT INTO attendance (course_id, student_id, date, status) VALUES (%s, %s, %s, %s)",
+                (course, student_id, date, status),
+            )
+            self.conn.commit()
+            messagebox.showinfo("Success", "Attendance updated successfully.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to update attendance:\n{str(e)}")
 
     def report_bug(self):
         bug_window = tk.Toplevel(self.root)
@@ -1243,7 +1321,7 @@ class LMSApp:
             ).pack(pady=10)
         ).pack(pady=10)
 
-    def add_course_to_db(self):
+    def add_course(self):
         course_id = self.add_course_id_entry.get()
         title = self.add_course_title_entry.get()
         credit_hours = self.add_course_credit_hours_entry.get()
@@ -1571,6 +1649,48 @@ class LMSApp:
             self.show_user_menu()
         else:
             messagebox.showerror("Feedback", "Failed to submit feedback.")
+    def view_feedback(self):
+        self.clear_window()
+        ttk.Label(self.root, text="Submitted Feedback", font=("Arial", 16)).pack(pady=20)
+
+        try:
+            query = "SELECT sender_id, course_id, instructor_id, rating, comments, time FROM feedback ORDER BY time DESC"
+            self.cursor.execute(query)
+            feedbacks = self.cursor.fetchall()
+
+            if not feedbacks:
+                ttk.Label(self.root, text="No feedback submitted yet.").pack(pady=10)
+            else:
+                canvas = tk.Canvas(self.root)
+                scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=canvas.yview)
+                scroll_frame = ttk.Frame(canvas)
+
+                scroll_frame.bind(
+                "<Configure>",
+                lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+            )
+
+            canvas.create_window((0, 0), window=scroll_frame, anchor="nw")
+            canvas.configure(yscrollcommand=scrollbar.set)
+
+            canvas.pack(side="left", fill="both", expand=True)
+            scrollbar.pack(side="right", fill="y")
+
+            for fb in feedbacks:
+                sender_id, course_id, instructor_id, rating, comments, time = fb
+                frame = ttk.LabelFrame(scroll_frame, text=f"Course {course_id}", padding=10)
+                frame.pack(padx=10, pady=5, fill="x", expand=True)
+
+                ttk.Label(frame, text=f"Sender ID: {sender_id}").pack(anchor="w")
+                ttk.Label(frame, text=f"Instructor ID: {instructor_id}").pack(anchor="w")
+                ttk.Label(frame, text=f"Rating: {rating}/5").pack(anchor="w")
+                ttk.Label(frame, text=f"Comments: {comments}").pack(anchor="w")
+                ttk.Label(frame, text=f"Submitted on: {time.strftime('%Y-%m-%d %H:%M:%S')}").pack(anchor="w")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not fetch feedback: {e}")
+
+        ttk.Button(self.root, text="Back to Menu", command=self.show_user_menu).pack(pady=10)
 
     def insert_calendar_event(self):
         self.clear_window()
