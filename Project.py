@@ -713,18 +713,21 @@ class LMSApp:
         role_label = ttk.Label(self.root, text="Role:")
         role_label.pack()
         self.role_var = tk.StringVar(value="student")  # Default to student
+
         student_radio = ttk.Radiobutton(
-            self.root, text="Student", variable=self.role_var, value="student"
-        )
+    self.root, text="Student", variable=self.role_var, value="student"
+)
         instructor_radio = ttk.Radiobutton(
-            self.root, text="Instructor", variable=self.role_var, value="instructor"
-        )
+    self.root, text="Instructor", variable=self.role_var, value="instructor"
+)
         admin_radio = ttk.Radiobutton(
-            self.root, text="Admin", variable=self.role_var, value="admin"
-        )
-        student_radio.pack(anchor=tk.W)
-        instructor_radio.pack(anchor=tk.W)
-        admin_radio.pack(anchor=tk.W)
+    self.root, text="Admin", variable=self.role_var, value="admin"
+)
+
+        student_radio.pack(anchor="center", pady=2)
+        instructor_radio.pack(anchor="center", pady=2)
+        admin_radio.pack(anchor="center", pady=2)
+
 
         register_button = ttk.Button(
             self.root, text="Register", command=self.register_user
