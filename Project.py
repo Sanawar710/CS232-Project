@@ -715,19 +715,18 @@ class LMSApp:
         self.role_var = tk.StringVar(value="student")  # Default to student
 
         student_radio = ttk.Radiobutton(
-    self.root, text="Student", variable=self.role_var, value="student"
-)
+            self.root, text="Student", variable=self.role_var, value="student"
+        )
         instructor_radio = ttk.Radiobutton(
-    self.root, text="Instructor", variable=self.role_var, value="instructor"
-)
+            self.root, text="Instructor", variable=self.role_var, value="instructor"
+        )
         admin_radio = ttk.Radiobutton(
-    self.root, text="Admin", variable=self.role_var, value="admin"
-)
+            self.root, text="Admin", variable=self.role_var, value="admin"
+        )
 
         student_radio.pack(anchor="center", pady=2)
         instructor_radio.pack(anchor="center", pady=2)
         admin_radio.pack(anchor="center", pady=2)
-
 
         register_button = ttk.Button(
             self.root, text="Register", command=self.register_user
@@ -1652,9 +1651,12 @@ class LMSApp:
             self.show_user_menu()
         else:
             messagebox.showerror("Feedback", "Failed to submit feedback.")
+
     def view_feedback(self):
         self.clear_window()
-        ttk.Label(self.root, text="Submitted Feedback", font=("Arial", 16)).pack(pady=20)
+        ttk.Label(self.root, text="Submitted Feedback", font=("Arial", 16)).pack(
+            pady=20
+        )
 
         try:
             query = "SELECT sender_id, course_id, instructor_id, rating, comments, time FROM feedback ORDER BY time DESC"
@@ -1665,13 +1667,15 @@ class LMSApp:
                 ttk.Label(self.root, text="No feedback submitted yet.").pack(pady=10)
             else:
                 canvas = tk.Canvas(self.root)
-                scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=canvas.yview)
+                scrollbar = ttk.Scrollbar(
+                    self.root, orient="vertical", command=canvas.yview
+                )
                 scroll_frame = ttk.Frame(canvas)
 
                 scroll_frame.bind(
-                "<Configure>",
-                lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-            )
+                    "<Configure>",
+                    lambda e: canvas.configure(scrollregion=canvas.bbox("all")),
+                )
 
             canvas.create_window((0, 0), window=scroll_frame, anchor="nw")
             canvas.configure(yscrollcommand=scrollbar.set)
@@ -1681,19 +1685,27 @@ class LMSApp:
 
             for fb in feedbacks:
                 sender_id, course_id, instructor_id, rating, comments, time = fb
-                frame = ttk.LabelFrame(scroll_frame, text=f"Course {course_id}", padding=10)
+                frame = ttk.LabelFrame(
+                    scroll_frame, text=f"Course {course_id}", padding=10
+                )
                 frame.pack(padx=10, pady=5, fill="x", expand=True)
 
                 ttk.Label(frame, text=f"Sender ID: {sender_id}").pack(anchor="w")
-                ttk.Label(frame, text=f"Instructor ID: {instructor_id}").pack(anchor="w")
+                ttk.Label(frame, text=f"Instructor ID: {instructor_id}").pack(
+                    anchor="w"
+                )
                 ttk.Label(frame, text=f"Rating: {rating}/5").pack(anchor="w")
                 ttk.Label(frame, text=f"Comments: {comments}").pack(anchor="w")
-                ttk.Label(frame, text=f"Submitted on: {time.strftime('%Y-%m-%d %H:%M:%S')}").pack(anchor="w")
+                ttk.Label(
+                    frame, text=f"Submitted on: {time.strftime('%Y-%m-%d %H:%M:%S')}"
+                ).pack(anchor="w")
 
         except Exception as e:
             messagebox.showerror("Error", f"Could not fetch feedback: {e}")
 
-        ttk.Button(self.root, text="Back to Menu", command=self.show_user_menu).pack(pady=10)
+        ttk.Button(self.root, text="Back to Menu", command=self.show_user_menu).pack(
+            pady=10
+        )
 
     def insert_calendar_event(self):
         self.clear_window()
