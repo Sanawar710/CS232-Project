@@ -1291,7 +1291,7 @@ class LMSApp:
             messagebox.showerror("Add Course Error", "All fields are required.")
 
         add_button = ttk.Button(
-            self.root, text="Add Course", command=self.add_course_to_db
+            self.root, text="Add Course", command=self.add_course
         )
         add_button.pack(pady=10)
         back_button = ttk.Button(
