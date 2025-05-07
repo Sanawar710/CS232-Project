@@ -376,33 +376,19 @@ class LMSApp:
 
     def show_login_menu(self):
         self.clear_window()
+
+    # Title label
         title_label = ttk.Label(
-            self.root, text="Welcome to the LMS", font=("Arial", 16)
-        )
+        self.root, text="Welcome to the LMS", font=("Arial", 16)
+    )
         title_label.pack(pady=20)
 
-        login_user_button = ttk.Button(
-            self.root, text="Login as User", command=self.login_user
-        )
-        login_user_button.pack(pady=10)
-
-        login_admin_button = ttk.Button(
-            self.root, text="Login as Admin", command=self.login_admin
-        )
-        login_admin_button.pack(pady=10)
-
-        login_instructor_button = ttk.Button(
-            self.root, text="Login as Instructor", command=self.login_instructor
-        )
-        login_instructor_button.pack(pady=10)
-
-        register_user_button = ttk.Button(
-            self.root, text="Register", command=self.show_registration_form
-        )
-        register_user_button.pack(pady=10)
-
-        exit_button = ttk.Button(self.root, text="Exit", command=self.root.destroy)
-        exit_button.pack(pady=10)
+        # Buttons
+        ttk.Button(self.root, text="Login as Student", command=self.login_user).pack(pady=10)
+        ttk.Button(self.root, text="Login as Instructor", command=self.login_instructor).pack(pady=10)
+        ttk.Button(self.root, text="Login as Admin", command=self.login_admin).pack(pady=10)
+        ttk.Button(self.root, text="Register", command=self.show_registration_form).pack(pady=10)
+        ttk.Button(self.root, text="Exit", command=self.root.destroy).pack(pady=10)
 
     def login_user(self):
         self.show_login_form("user")
@@ -466,125 +452,64 @@ class LMSApp:
 
     def show_user_menu(self):
         self.clear_window()
+        role = self.role.strip().lower()
 
-        if self.role.strip().lower() == "student":
-            menu_label = ttk.Label(self.root, text="Student's Menu", font=("Arial", 16))
+        if role == "student":
+            menu_label = ttk.Label(self.root, text="Student Menu", font=("Arial", 16))
             menu_label.pack(pady=20)
-            ttk.Button(self.root, text="View Courses", command=self.view_courses).pack(
-                pady=5
-            )
-            ttk.Button(
-                self.root, text="View Academic Calendar", command=self.view_calendar
-            ).pack(pady=5)
-            ttk.Button(self.root, text="View Grades", command=self.view_grades).pack(
-                pady=5
-            )
-            ttk.Button(
-                self.root, text="View Attendance", command=self.view_attendance
-            ).pack(pady=5)
-            ttk.Button(
-                self.root, text="Request Rechecking", command=self.request_rechecking
-            ).pack(pady=5)
-            ttk.Button(
-                self.root, text="Give Feedback", command=self.give_feedback
-            ).pack(pady=5)
-            ttk.Button(
-                self.root,
-                text="View Discussion Threads",
-                command=self.view_discussion_threads,
-            ).pack(pady=5)
-            ttk.Button(
-                self.root,
-                text="Reply to Discussion Thread",
-                command=self.reply_to_thread,
-            ).pack(pady=5)
-            ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(
-                pady=5
-            )
-            ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(
-                pady=10
-            )
 
-        elif self.role.strip().lower() == "admin":
+            buttons = [
+            ("View Courses", self.view_courses),
+            ("View Academic Calendar", self.view_calendar),
+            ("View Grades", self.view_grades),
+            ("View Attendance", self.view_attendance),
+            ("Request Rechecking", self.request_rechecking),
+            ("View Discussion Threads", self.view_discussion_threads),
+            ("Reply to Discussion Thread", self.reply_to_thread),
+            ("Report a Bug", self.report_bug),
+            ("Logout", self.show_login_menu)
+        ]
+
+        elif role == "admin":
             menu_label = ttk.Label(self.root, text="Admin Section", font=("Arial", 16))
-            menu_label.pack(pady=10)
-            ttk.Button(self.root, text="Manage Users", command=self.manage_users).pack(
-                pady=5
-            )
-            ttk.Button(
-                self.root, text="Manage Courses", command=self.manage_courses
-            ).pack(pady=5)
-            ttk.Button(
-                self.root,
-                text="View Rechecking Requests",
-                command=self.view_rechecking_requests,
-            ).pack(pady=5)
-            ttk.Button(
-                self.root,
-                text="View Percentage Distribution",
-                command=lambda: plot_percentage_distribution(self.conn, self.cursor),
-            ).pack(pady=5)
-            ttk.Button(
-                self.root, text="View Feedback", command=self.view_feedback
-            ).pack(pady=5)
-            ttk.Button(
-                self.root,
-                text="Update Academic Calendar",
-                command=self.insert_calendar_event,
-            ).pack(pady=5)
-            ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(
-                pady=5
-            )
-            ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(
-                pady=10
-            )
-
-        elif self.role.strip().lower() == "instructor":
-            menu_label = ttk.Label(
-                self.root, text="Instructor's Section", font=("Arial", 16)
-            )
             menu_label.pack(pady=20)
-            ttk.Button(self.root, text="Add Mark", command=self.add_marks).pack(pady=5)
-            ttk.Button(
-                self.root, text="Apply Grading", command=self.show_grading_options
-            ).pack(pady=5)
-            ttk.Button(
-                self.root,
-                text="View Rechecking Requests",
-                command=self.view_rechecking_requests,
-            ).pack(pady=5)
-            ttk.Button(
-                self.root,
-                text="View Percentage Distribution",
-                command=lambda: plot_percentage_distribution(self.conn, self.cursor),
-            ).pack(pady=5)
-            ttk.Button(
-                self.root, text="View Academic Calendar", command=self.view_calendar
-            ).pack(pady=5)
-            ttk.Button(
-                self.root, text="Update Attendance", command=self.update_attendance
-            ).pack(pady=5)
-            ttk.Button(
-                self.root,
-                text="Create Discussion Thread",
-                command=self.create_discussion_thread,
-            ).pack(pady=5)
-            ttk.Button(
-                self.root,
-                text="View Discussion Threads",
-                command=self.view_discussion_threads,
-            ).pack(pady=5)
-            ttk.Button(
-                self.root,
-                text="Reply to Discussion Thread",
-                command=self.reply_to_thread,
-            ).pack(pady=5)
-            ttk.Button(self.root, text="Report a Bug", command=self.report_bug).pack(
-                pady=5
-            )
-            ttk.Button(self.root, text="Logout", command=self.show_login_menu).pack(
-                pady=10
-            )
+
+            buttons = [
+            ("Manage Users", self.manage_users),
+            ("Manage Courses", self.manage_courses),
+            ("View Rechecking Requests", self.view_rechecking_requests),
+            ("View Percentage Distribution", lambda: plot_percentage_distribution(self.conn, self.cursor)),
+            ("View Feedback", self.view_feedback),
+            ("Update Academic Calendar", self.insert_calendar_event),
+            ("Report a Bug", self.report_bug),
+            ("Logout", self.show_login_menu)
+        ]
+
+        elif role == "instructor":
+            menu_label = ttk.Label(self.root, text="Instructor Section", font=("Arial", 16))
+            menu_label.pack(pady=20)
+
+            buttons = [
+            ("Add Marks", self.add_marks),
+            ("Apply Grading", self.show_grading_options),
+            ("View Rechecking Requests", self.view_rechecking_requests),
+            ("View Percentage Distribution", lambda: plot_percentage_distribution(self.conn, self.cursor)),
+            ("View Academic Calendar", self.view_calendar),
+            ("Update Attendance", self.update_attendance),
+            ("Create Discussion Thread", self.create_discussion_thread),
+            ("View Discussion Threads", self.view_discussion_threads),
+            ("Reply to Discussion Thread", self.reply_to_thread),
+            ("Report a Bug", self.report_bug),
+            ("Logout", self.show_login_menu)
+        ]
+
+        else:
+            messagebox.showerror("Error", "Invalid role.")
+            return
+
+    # Create buttons
+        for text, command in buttons:
+           ttk.Button(self.root, text=text, command=command).pack(pady=5)
 
     def update_attendance(self):
         self.clear_window()
